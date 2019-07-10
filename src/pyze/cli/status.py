@@ -69,6 +69,19 @@ def run(args):
         )
     )
 
+    if 'nextHvacStartDate' in hvac:
+        print(
+            'Preconditioning scheduled for {}'.format(
+                dateutil.parser.parse(
+                    hvac['nextHvacStartDate']
+                ).astimezone(
+                    dateutil.tz.tzlocal()
+                ).strftime(
+                    '%Y-%m-%d %H:%M:%S'
+                )
+            )
+        )
+
     mileage = v.mileage()['totalMileage']
 
     if parsed_args.km:
