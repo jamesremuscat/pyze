@@ -85,7 +85,6 @@ class Gigya(object):
 
         if token:
             decoded = jwt.decode(token, options={'verify_signature': False})
-            print(decoded)
             self._credentials['gigya-token'] = (token, decoded['exp'])
             return token
 
