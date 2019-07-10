@@ -14,6 +14,7 @@ setup(
     long_description="Unofficial client and API for Renault ZE.",
     install_requires=[
         'pyjwt',
+        'python-dateutil',
         'requests',
         'simplejson'
     ],

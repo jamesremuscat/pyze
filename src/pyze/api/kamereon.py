@@ -16,7 +16,14 @@ class AccountException(Exception):
         super().__init__(message)
 
 
-class Kamereon(object):
+class CachingAPIObject(object):
+    def _clear_all_caches(self):
+        cached_funcs = [f for f in dir(self) if hasattr(f, 'cache_clear')]
+        for func in cached_funcs:
+            f.cache_clear()
+
+
+class Kamereon(CachingAPIObject):
     def __init__(self, credentials=CredentialStore(), country='GB'):
         self._api_key = os.environ.get('KAMEREON_API_KEY')
 
@@ -26,11 +33,6 @@ class Kamereon(object):
         self._credentials = credentials
         self._country = country
         self._gigya = Gigya(self._credentials)
-
-    def _clear_all_caches(self):
-        cached_funcs = [f for f in dir(self) if hasattr(f, 'cache_clear')]
-        for func in cached_funcs:
-            f.cache_clear()
 
     @requires_credentials('gigya', 'gigya-person-id')
     def get_account_id(self):
@@ -103,7 +105,7 @@ class Kamereon(object):
             headers={
                 'apikey': self._api_key,
                 'x-gigya-id_token': self._gigya.get_jwt_token(),
-                'x-kamereon-authorization': self.get_token()
+                'x-kamereon-authorization': 'Bearer {}'.format(self.get_token())
             }
         )
 
@@ -111,3 +113,29 @@ class Kamereon(object):
         response_body = response.json()
 
         return response_body
+
+
+class Vehicle(object):
+    def __init__(self, vin, kamereon=Kamereon()):
+        self._vin = vin
+        self._kamereon = kamereon
+
+    def _get(self, endpoint):
+        response = requests.get(
+            '{}/accounts/kmr/remote-services/car-adapter/v1/cars/{}/{}'.format(
+                _ROOT_URL,
+                self._vin,
+                endpoint
+            ),
+            headers={
+                'apikey': self._kamereon._api_key,
+                'x-gigya-id_token': self._kamereon._gigya.get_jwt_token(),
+                'x-kamereon-authorization': 'Bearer {}'.format(self._kamereon.get_token())
+            }
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def battery_status(self):
+        return self._get('battery-status')
