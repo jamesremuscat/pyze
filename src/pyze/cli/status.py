@@ -59,6 +59,14 @@ def run(args):
         )
     )
 
+    hvac = v.hvac_status()['data']['attributes']
+    print(
+        'AC {}, outside temperature: {}°C'.format(
+            hvac['hvacStatus'],
+            hvac['externalTemperature']
+        )
+    )
+
     print(
         'Updated at {}'.format(
             dateutil.parser.parse(
