@@ -13,6 +13,7 @@ setup(
     package_dir={'': 'src'},
     long_description="Unofficial client and API for Renault ZE.",
     install_requires=[
+        'dateparser',
         'pyjwt',
         'python-dateutil',
         'requests',

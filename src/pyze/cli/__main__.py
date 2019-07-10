@@ -1,11 +1,14 @@
 import argparse
+import requests
 import sys
 
+from .ac import run as ac
 from .login import run as login
 from .status import run as status
 from .vehicles import run as vehicles
 
 commands = {
+    'ac': ac,
     'login': login,
     'status': status,
     'vehicles': vehicles
@@ -25,7 +28,12 @@ def main(args=None):
 
     args, rest = argument_parser().parse_known_args(args)
     cmd = commands.get(args.command)
-    cmd(rest)
+
+    try:
+        cmd(rest)
+    except requests.RequestException as e:
+        print("Error communicating with Renault API!")
+        print(e.response.text)
 
 
 if __name__ == '__main__':

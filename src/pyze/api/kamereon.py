@@ -2,6 +2,8 @@ from .credentials import CredentialStore, requires_credentials
 from .gigya import Gigya
 from functools import lru_cache
 
+import datetime
+import dateutil.tz
 import jwt
 import os
 import requests
@@ -120,22 +122,47 @@ class Vehicle(object):
         self._vin = vin
         self._kamereon = kamereon
 
+    def _request(self, method, endpoint, **kwargs):
+        return requests.request(
+            method,
+            endpoint,
+            headers={
+                'Content-type': 'application/vnd.api+json',
+                'apikey': self._kamereon._api_key,
+                'x-gigya-id_token': self._kamereon._gigya.get_jwt_token(),
+                'x-kamereon-authorization': 'Bearer {}'.format(self._kamereon.get_token())
+            },
+            **kwargs
+        )
+
     def _get(self, endpoint):
-        response = requests.get(
+        response = self._request(
+            'GET',
+            '{}/accounts/kmr/remote-services/car-adapter/v1/cars/{}/{}'.format(
+                _ROOT_URL,
+                self._vin,
+                endpoint
+            )
+        )
+
+        response.raise_for_status()
+        return response.json()['data']['attributes']
+
+    def _post(self, endpoint, data):
+        response = self._request(
+            'POST',
             '{}/accounts/kmr/remote-services/car-adapter/v1/cars/{}/{}'.format(
                 _ROOT_URL,
                 self._vin,
                 endpoint
             ),
-            headers={
-                'apikey': self._kamereon._api_key,
-                'x-gigya-id_token': self._kamereon._gigya.get_jwt_token(),
-                'x-kamereon-authorization': 'Bearer {}'.format(self._kamereon.get_token())
+            json={
+                'data': data
             }
         )
 
         response.raise_for_status()
-        return response.json()['data']['attributes']
+        return response.json()
 
     def battery_status(self):
         return self._get('battery-status')
@@ -156,3 +183,31 @@ class Vehicle(object):
     # Not (currently) implemented server-side
     def location(self):
         return self._get('location')
+
+    # Actions
+
+    def ac_start(self, when=None, temperature=21):
+
+        attrs = {
+            'action': 'start',
+            'targetTemperature': temperature
+        }
+
+        if when:
+
+            if not isinstance(when, datetime.datetime):
+                raise RuntimeError('`when` should be an instance of datetime.datetime, not {}'.format(when.__class__))
+
+            attrs['startDateTime'] = when.astimezone(
+                dateutil.tz.tzutc()
+            ).strftime(
+                "%Y-%m-%dT%H:%M:%SZ"
+            )
+
+        return self._post(
+            'actions/hvac-start',
+            {
+                'type': 'HvacStart',
+                'attributes': attrs
+            }
+        )
