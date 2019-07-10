@@ -1,8 +1,10 @@
 import argparse
 import sys
 
+from .login import run as login
 
 commands = {
+    'login': login
 }
 
 
