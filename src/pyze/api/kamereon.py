@@ -142,3 +142,6 @@ class Vehicle(object):
 
     def hvac_status(self):
         return self._get('hvac-status')
+
+    def charge_mode(self):
+        return self._get('charge-mode')

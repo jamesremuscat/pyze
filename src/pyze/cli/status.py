@@ -51,11 +51,13 @@ def run(args):
     print('Battery level: {}% ({})'.format(status['batteryLevel'], range_text))
 
     plugged_in, charging = status['plugStatus'] > 0, status['chargeStatus'] > 0
+    charge_mode = v.charge_mode()['data']['attributes']['chargeMode']
 
     print(
-        '{} in, {}'.format(
+        '{} in, {}, charge mode {}'.format(
             'Plugged' if plugged_in else 'Not plugged',
-            'charging' if charging else 'not charging'
+            'charging' if charging else 'not charging',
+            charge_mode
         )
     )
 
