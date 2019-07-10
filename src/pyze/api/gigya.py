@@ -1,6 +1,7 @@
 from .credentials import requires_credential
 from functools import lru_cache
 
+import jwt
 import os
 import requests
 
@@ -56,6 +57,30 @@ class Gigya(object):
 
         if person_id:
             self._credentials['gigya-person-id'] = (person_id, None)
+            return response_body
+
+        return False
+
+    @requires_credential('gigya')
+    def get_jwt_token(self):
+        response = requests.post(
+            _ROOT_URL + 'accounts.getJWT',
+            {
+                'oauth_token': self._credentials['gigya'],
+                'fields': 'data.personId,data.gigyaDataCenter',
+                'expiration': 900
+            }
+        )
+
+        response.raise_for_status()
+        response_body = response.json()
+
+        token = response_body.get('id_token')
+
+        if token:
+            decoded = jwt.decode(token, options={'verify_signature': False})
+            print(decoded)
+            self._credentials['gigya-token'] = (token, decoded['exp'])
             return response_body
 
         return False

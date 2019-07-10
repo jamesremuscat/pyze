@@ -10,6 +10,7 @@ def run(args):
     password = getpass.getpass('Enter your password: ')
 
     g = Gigya(creds)
-    print(g.login(email, password))
-    print(g.account_info())
-    print(g.account_info())
+    if g.login(email, password):
+        print('Logged in successfully.')
+    else:
+        print('Failed to log in!')
