@@ -34,6 +34,8 @@ class Gigya(object):
         token = response_body.get('sessionInfo', {}).get('cookieValue')
 
         if token:
+            # Any stored credentials may be based on an old gigya login
+            self._credentials.clear()
             self._credentials['gigya'] = (token, None)
             self.account_info.cache_clear()
             return response_body

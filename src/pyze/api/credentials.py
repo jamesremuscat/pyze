@@ -78,6 +78,10 @@ class CredentialStore(object):
             except KeyError:
                 return False
 
+        def clear(self):
+            self._store = {}
+            self._write()
+
 
 Credential = namedtuple(
     'Credential',
