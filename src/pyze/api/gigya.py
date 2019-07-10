@@ -13,7 +13,7 @@ class Gigya(object):
             raise Exception('GIGYA_API_KEY environment variable not specified but required')
 
     def login(self, user, password):
-        return requests.post(
+        response = requests.post(
             _ROOT_URL + 'accounts.login',
             data={
                 'ApiKey': self._api_key,
@@ -21,3 +21,8 @@ class Gigya(object):
                 'password': password
             }
         )
+
+        response.raise_for_status()
+
+        response_body = response.json()
+        return response
