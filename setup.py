@@ -13,7 +13,8 @@ setup(
     package_dir={'': 'src'},
     long_description="Unofficial client and API for Renault ZE.",
     install_requires=[
-        'requests'
+        'requests',
+        'simplejson'
     ],
     setup_requires=[
         'pytest-runner',
