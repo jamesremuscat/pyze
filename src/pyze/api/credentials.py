@@ -12,15 +12,16 @@ class MissingCredentialException(Exception):
     pass
 
 
-def requires_credential(name):
-    def _requires_credential(func):
+def requires_credentials(*names):
+    def _requires_credentials(func):
         def inner(*args, **kwargs):
-            if name in CredentialStore():
-                return func(*args, **kwargs)
-            else:
-                raise MissingCredentialException()
+            for name in names:
+                if name not in CredentialStore():
+                    raise MissingCredentialException()
+            return func(*args, **kwargs)
+
         return inner
-    return _requires_credential
+    return _requires_credentials
 
 
 def init_store():
