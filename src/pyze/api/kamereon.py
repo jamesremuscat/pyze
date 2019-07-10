@@ -1,5 +1,6 @@
 from .credentials import CredentialStore, requires_credentials
 from .gigya import Gigya
+from functools import lru_cache
 
 import jwt
 import os
@@ -25,6 +26,11 @@ class Kamereon(object):
         self._credentials = credentials
         self._country = country
         self._gigya = Gigya(self._credentials)
+
+    def _clear_all_caches(self):
+        cached_funcs = [f for f in dir(self) if hasattr(f, 'cache_clear')]
+        for func in cached_funcs:
+            f.cache_clear()
 
     @requires_credentials('gigya', 'gigya-person-id')
     def get_account_id(self):
@@ -53,6 +59,7 @@ class Kamereon(object):
             print("WARNING: Multiple Karmereon accounts found. Using the first.")
 
         account = accounts[0]
+        self._clear_all_caches()
         self._credentials['kamereon-account'] = (account['accountId'], None)
         return account['accountId']
 
@@ -80,11 +87,12 @@ class Kamereon(object):
         if token:
             decoded = jwt.decode(token, options={'verify_signature': False, 'verify_aud': False})
             self._credentials['kamereon'] = (token, decoded['exp'])
-
+            self._clear_all_caches()
             return token
 
         return False
 
+    @lru_cache(maxsize=1)
     def get_vehicles(self):
         response = requests.get(
             '{}/accounts/{}/vehicles?country={}'.format(
