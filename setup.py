@@ -9,11 +9,11 @@ setup(
     author='James Muscat',
     author_email='jamesremuscat@gmail.com',
     url='https://github.com/jamesremuscat/pyze',
-    packages=find_packages('src', exclude=["*.tests"]) + [''],
-    package_dir={'pyze': 'src/pyze'},
+    packages=['pyze'],
+    package_dir={'': 'src'},
     long_description="Unofficial client and API for Renault ZE.",
     install_requires=[
-        "requests"
+        'requests'
     ],
     setup_requires=[
         'pytest-runner',
@@ -23,6 +23,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
+            'pyze = pyze.cli.__main__:main'
         ],
     }
 )
