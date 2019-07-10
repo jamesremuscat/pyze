@@ -1,5 +1,7 @@
 from .credentials import CredentialStore, requires_credentials
 from .gigya import Gigya
+from .schedule import ChargeSchedule
+from collections import namedtuple
 from functools import lru_cache
 
 import datetime
@@ -183,6 +185,11 @@ class Vehicle(object):
     # Not (currently) implemented server-side
     def location(self):
         return self._get('location')
+
+    def charge_schedule(self):
+        return ChargeSchedule(
+            self._get('charge-schedule')
+        )
 
     # Actions
 
