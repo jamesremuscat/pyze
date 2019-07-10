@@ -6,8 +6,9 @@ _ROOT_URL = 'https://accounts.eu1.gigya.com/'
 
 
 class Gigya(object):
-    def __init__(self):
+    def __init__(self, credentials):
         self._api_key = os.environ.get('GIGYA_API_KEY')
+        self._credentials = credentials
 
         if self._api_key is None:
             raise Exception('GIGYA_API_KEY environment variable not specified but required')
@@ -25,4 +26,11 @@ class Gigya(object):
         response.raise_for_status()
 
         response_body = response.json()
-        return response
+
+        token = response_body.get('sessionInfo', {}).get('cookieValue', None)
+
+        if token:
+            self._credentials['gigya'] = (token, None)
+            return response_body
+
+        return False
