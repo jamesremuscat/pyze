@@ -2,9 +2,11 @@ import argparse
 import sys
 
 from .login import run as login
+from .vehicles import run as vehicles
 
 commands = {
-    'login': login
+    'login': login,
+    'vehicles': vehicles
 }
 
 

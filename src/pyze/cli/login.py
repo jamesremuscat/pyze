@@ -11,6 +11,7 @@ def run(args):
 
     g = Gigya(creds)
     if g.login(email, password):
+        g.account_info()
         print('Logged in successfully.')
     else:
         print('Failed to log in!')
