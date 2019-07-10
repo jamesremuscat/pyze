@@ -41,7 +41,7 @@ def run(args):
 
     v = Vehicle(vin, k)
 
-    status = v.battery_status()['data']['attributes']
+    status = v.battery_status()
 
     if parsed_args.km:
         range_text = '{:.1f} km'.format(status['rangeHvacOff'])
@@ -51,7 +51,7 @@ def run(args):
     print('Battery level: {}% ({})'.format(status['batteryLevel'], range_text))
 
     plugged_in, charging = status['plugStatus'] > 0, status['chargeStatus'] > 0
-    charge_mode = v.charge_mode()['data']['attributes']['chargeMode']
+    charge_mode = v.charge_mode()['chargeMode']
 
     print(
         '{} in, {}, charge mode {}'.format(
@@ -61,13 +61,24 @@ def run(args):
         )
     )
 
-    hvac = v.hvac_status()['data']['attributes']
+    hvac = v.hvac_status()
     print(
         'AC {}, outside temperature: {}°C'.format(
             hvac['hvacStatus'],
             hvac['externalTemperature']
         )
     )
+
+    mileage = v.mileage()['totalMileage']
+
+    if parsed_args.km:
+        print(
+            'Total mileage: {:,} km'.format(mileage)
+        )
+    else:
+        print(
+            'Total mileage: {:,.1f} miles'.format(mileage / KM_PER_MILE)
+        )
 
     print(
         'Updated at {}'.format(

@@ -135,7 +135,7 @@ class Vehicle(object):
         )
 
         response.raise_for_status()
-        return response.json()
+        return response.json()['data']['attributes']
 
     def battery_status(self):
         return self._get('battery-status')
@@ -145,6 +145,9 @@ class Vehicle(object):
 
     def charge_mode(self):
         return self._get('charge-mode')
+
+    def mileage(self):
+        return self._get('cockpit')
 
     # Not (currently) implemented server-side
     def lock_status(self):
