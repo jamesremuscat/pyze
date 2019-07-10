@@ -145,3 +145,11 @@ class Vehicle(object):
 
     def charge_mode(self):
         return self._get('charge-mode')
+
+    # Not (currently) implemented server-side
+    def lock_status(self):
+        return self._get('lock-status')
+
+    # Not (currently) implemented server-side
+    def location(self):
+        return self._get('location')
