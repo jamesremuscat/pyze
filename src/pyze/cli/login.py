@@ -11,3 +11,5 @@ def run(args):
 
     g = Gigya(creds)
     print(g.login(email, password))
+    print(g.account_info())
+    print(g.account_info())

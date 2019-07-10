@@ -8,6 +8,21 @@ import time
 TOKEN_STORE = os.environ.get('PYZE_TOKEN_STORE', os.path.expanduser('~/.credentials/pyze.json'))
 
 
+class MissingCredentialException(Exception):
+    pass
+
+
+def requires_credential(name):
+    def _requires_credential(func):
+        def inner(*args, **kwargs):
+            if name in CredentialStore():
+                return func(*args, **kwargs)
+            else:
+                raise MissingCredentialException()
+        return inner
+    return _requires_credential
+
+
 def init_store():
     new_store = {}
     try:
@@ -34,7 +49,6 @@ class CredentialStore(object):
     class _CredentialStore(object):
         def __init__(self):
             self._store = init_store()
-            print(self._store)
 
         def __getitem__(self, name):
             if name in self._store:
