@@ -120,9 +120,9 @@ class Kamereon(CachingAPIObject):
 
 
 class Vehicle(object):
-    def __init__(self, vin, kamereon=Kamereon()):
+    def __init__(self, vin, kamereon=None):
         self._vin = vin
-        self._kamereon = kamereon
+        self._kamereon = kamereon or Kamereon()
 
     def _request(self, method, endpoint, **kwargs):
         return requests.request(
@@ -217,4 +217,19 @@ class Vehicle(object):
                 'type': 'HvacStart',
                 'attributes': attrs
             }
+        )
+
+    def set_charge_schedule(self, schedule):
+        if not isinstance(schedule, ChargeSchedule):
+            raise RuntimeError('Expected schedule to be instance of ChargeSchedule, but got {} instead'.format(schedule.__class__))
+        schedule.validate()
+
+        data = {
+            'type': 'ChargeSchedule',
+            'attributes': schedule
+        }
+
+        return self._post(
+            'actions/charge-schedule',
+            simplejson.loads(simplejson.dumps(data, for_json=True))
         )
