@@ -62,7 +62,7 @@ class Kamereon(CachingAPIObject):
         if len(accounts) == 0:
             raise AccountException('No Kamereon accounts found!')
         if len(accounts) > 1:
-            print("WARNING: Multiple Karmereon accounts found. Using the first.")
+            print("WARNING: Multiple Kamereon accounts found. Using the first.")
 
         account = accounts[0]
         self._clear_all_caches()
