@@ -191,6 +191,9 @@ class Vehicle(object):
             self._get('charge-schedule')
         )
 
+    def notification_settings(self):
+        return self._get('notification-settings')
+
     # Actions
 
     def ac_start(self, when=None, temperature=21):
