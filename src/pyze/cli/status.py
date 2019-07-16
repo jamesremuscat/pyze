@@ -1,4 +1,5 @@
 from pyze.api import Kamereon, Vehicle
+from tabulate import tabulate
 
 import argparse
 import dateutil.parser
@@ -42,65 +43,56 @@ def run(args):
     v = Vehicle(vin, k)
 
     status = v.battery_status()
-
-    if parsed_args.km:
-        range_text = '{:.1f} km'.format(status['rangeHvacOff'])
-    else:
-        range_text = '{:.1f} miles'.format(status['rangeHvacOff'] / KM_PER_MILE)
-
-    print('Battery level: {}% ({})'.format(status['batteryLevel'], range_text))
-
+    # {'lastUpdateTime': '2019-07-12T00:38:01Z', 'chargePower': 2, 'instantaneousPower': 6600, 'plugStatus': 1, 'chargeStatus': 1, 'batteryLevel': 28, 'rangeHvacOff': 64, 'timeRequiredToFullSlow': 295}
     plugged_in, charging = status['plugStatus'] > 0, status['chargeStatus'] > 0
     charge_mode = v.charge_mode()['chargeMode']
 
-    print(
-        '{} in, {}, charge mode {}'.format(
-            'Plugged' if plugged_in else 'Not plugged',
-            'charging' if charging else 'not charging',
-            charge_mode
-        )
-    )
-
     hvac = v.hvac_status()
-    print(
-        'AC {}, outside temperature: {}°C'.format(
-            hvac['hvacStatus'],
-            hvac['externalTemperature']
-        )
-    )
-
-    if 'nextHvacStartDate' in hvac:
-        print(
-            'Preconditioning scheduled for {}'.format(
-                dateutil.parser.parse(
-                    hvac['nextHvacStartDate']
-                ).astimezone(
-                    dateutil.tz.tzlocal()
-                ).strftime(
-                    '%Y-%m-%d %H:%M:%S'
-                )
-            )
-        )
 
     mileage = v.mileage()['totalMileage']
 
     if parsed_args.km:
-        print(
-            'Total mileage: {:,} km'.format(mileage)
+        range_text = '{:.1f} km'.format(status['rangeHvacOff'])
+        mileage_text = "{:.1f} km".format(mileage)
+    else:
+        range_text = '{:.1f} miles'.format(status['rangeHvacOff'] / KM_PER_MILE)
+        mileage_text = "{:.1f} mi".format(mileage / KM_PER_MILE)
+
+    if 'nextHvacStartDate' in hvac:
+        hvac_start = dateutil.parser.parse(
+            hvac['nextHvacStartDate']
+        ).astimezone(
+            dateutil.tz.tzlocal()
+        ).strftime(
+            '%Y-%m-%d %H:%M:%S'
         )
     else:
-        print(
-            'Total mileage: {:,.1f} miles'.format(mileage / KM_PER_MILE)
-        )
+        hvac_start = None
+
+    update_time = dateutil.parser.parse(
+        status['lastUpdateTime']
+    ).astimezone(
+        dateutil.tz.tzlocal()
+    ).strftime(
+        '%Y-%m-%d %H:%M:%S'
+    )
+
+    vehicle_table = [
+        ["Battery level", "{}%".format(status['batteryLevel'])],
+        ["Range estimate", range_text],
+        ['Plugged in', 'Yes' if plugged_in else 'No'],
+        ['Charging', 'Yes' if charging else 'No'],
+        ['Charge rate', "{:.2f}kW".format(status['instantaneousPower'] / 1000)] if 'instantaneousPower' in status else None,
+        ['Charge mode', charge_mode],
+        ['AC state', hvac['hvacStatus']],
+        ['AC start at', hvac_start] if hvac_start else None,
+        ['External temperature', "{}°C".format(hvac['externalTemperature'])],
+        ['Total mileage', mileage_text],
+        ['Updated at', update_time]
+    ]
 
     print(
-        'Updated at {}'.format(
-            dateutil.parser.parse(
-                status['lastUpdateTime']
-            ).astimezone(
-                dateutil.tz.tzlocal()
-            ).strftime(
-                '%Y-%m-%d %H:%M:%S'
-            )
+        tabulate(
+            [v for v in vehicle_table if v is not None]
         )
     )

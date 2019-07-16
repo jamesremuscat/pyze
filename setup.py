@@ -17,7 +17,8 @@ setup(
         'pyjwt',
         'python-dateutil',
         'requests',
-        'simplejson'
+        'simplejson',
+        'tabulate'
     ],
     setup_requires=[
         'pytest-runner',
