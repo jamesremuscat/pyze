@@ -194,6 +194,51 @@ class Vehicle(object):
     def notification_settings(self):
         return self._get('notification-settings')
 
+    def charge_history(self, start, end):
+        if not isinstance(start, datetime.datetime):
+            raise RuntimeError('`start` should be an instance of datetime.datetime, not {}'.format(start.__class__))
+        if not isinstance(end, datetime.datetime):
+            raise RuntimeError('`end` should be an instance of datetime.datetime, not {}'.format(end.__class__))
+
+        return self._get(
+            'charges?start={}&end={}'.format(
+                start.strftime('%Y%m%d'),
+                end.strftime('%Y%m%d')
+            )
+        ).get('charges', [])
+
+    def charge_statistics(self, start, end, period='month'):
+        if not isinstance(start, datetime.datetime):
+            raise RuntimeError('`start` should be an instance of datetime.datetime, not {}'.format(start.__class__))
+        if not isinstance(end, datetime.datetime):
+            raise RuntimeError('`end` should be an instance of datetime.datetime, not {}'.format(end.__class__))
+        if period not in PERIOD_FORMATS.keys():
+            raise RuntimeError('`period` should be one of `month`, `day`')
+
+        return self._get(
+            'charge-history?type={}}&start={}&end={}'.format(
+                period,
+                start.strftime(PERIOD_FORMATS[period]),
+                end.strftime(PERIOD_FORMATS[period])
+            )
+        )['chargeSummaries']
+
+    def hvac_statistics(self, start, end, period='month'):
+        if not isinstance(start, datetime.datetime):
+            raise RuntimeError('`start` should be an instance of datetime.datetime, not {}'.format(start.__class__))
+        if not isinstance(end, datetime.datetime):
+            raise RuntimeError('`end` should be an instance of datetime.datetime, not {}'.format(end.__class__))
+        if period not in PERIOD_FORMATS.keys():
+            raise RuntimeError('`period` should be one of `month`, `day`')
+
+        return self._get(
+            'hvac-history?type={}&start={}&end={}'.format(
+                period,
+                start.strftime(PERIOD_FORMATS[period]),
+                end.strftime(PERIOD_FORMATS[period])
+            )
+        )['hvacSessionsSummaries']
+
     # Actions
 
     def ac_start(self, when=None, temperature=21):
@@ -236,3 +281,9 @@ class Vehicle(object):
             'actions/charge-schedule',
             simplejson.loads(simplejson.dumps(data, for_json=True))
         )
+
+
+PERIOD_FORMATS = {
+    'day': '%Y%m%d',
+    'month': '%Y%m'
+}
