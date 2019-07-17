@@ -1,9 +1,20 @@
 from pyze.api import Kamereon, Vehicle
 
+import dateparser
+
 
 def add_vehicle_args(parser):
     parser.add_argument('-v', '--vin', help='VIN to use (defaults to first vehicle if not given)')
     parser.add_argument('-r', '--reg', help='Registration plate to use (defaults to first vehicle if not given)')
+
+
+def add_history_args(parser):
+    parser.add_argument('--from', dest='from_date', type=parse_date, help='Date to start showing history from')
+    parser.add_argument('--to', type=parse_date, help='Date to finish showing history at (cannot be in the future)')
+
+
+def parse_date(raw_date):
+    return dateparser.parse(raw_date)
 
 
 def get_vehicle(parsed_args):

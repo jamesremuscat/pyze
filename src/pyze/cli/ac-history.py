@@ -1,8 +1,9 @@
 from .common import add_history_args, add_vehicle_args, get_vehicle
 from datetime import datetime
+from tabulate import tabulate
 
 
-help_text = 'Show charge history for your vehicle.'
+help_text = 'Show preconditioning history for your vehicle.'
 
 
 def configure_parser(parser):
@@ -14,7 +15,6 @@ def run(parsed_args):
     v = get_vehicle(parsed_args)
 
     now = datetime.utcnow()
-
     if parsed_args.from_date:
         from_date = min(parsed_args.from_date, now)
     else:
@@ -25,5 +25,13 @@ def run(parsed_args):
     else:
         to_date = now
 
-    print(v.charge_history(from_date, to_date))
-    print('NOTE: The format for this data isn\'t yet known, so raw output is shown above.')
+    print(
+        tabulate(
+            v.hvac_history(from_date, to_date),
+            headers={
+                'hvacSessionRequestDate': 'Request made',
+                'hvacSessionStartDate': 'Start time',
+                'hvacSessionEndStatus': 'Status'
+            }
+        )
+    )
