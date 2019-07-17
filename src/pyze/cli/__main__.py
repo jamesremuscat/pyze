@@ -11,6 +11,7 @@ from .vehicles import run as vehicles
 
 COMMAND_MODULES = [
     'ac',
+    'charge-history',
     'login',
     'schedule',
     'status',
