@@ -1,4 +1,4 @@
-from pyze.api import Kamereon, Vehicle
+from .common import add_vehicle_args, get_vehicle
 from tabulate import tabulate
 
 import argparse
@@ -11,36 +11,14 @@ KM_PER_MILE = 1.609344
 
 def _parse_args(args):
     parser = argparse.ArgumentParser()
-    parser.add_argument('-v', '--vin', help='VIN to use (defaults to first vehicle if not given)')
-    parser.add_argument('-r', '--reg', help='Registration plate to use (defaults to first vehicle if not given)')
+    add_vehicle_args(parser)
     parser.add_argument('--km', help='Give estimated range in kilometers (default is miles)', action='store_true')
     return parser.parse_args(args)
 
 
 def run(args):
     parsed_args = _parse_args(args)
-    k = Kamereon()
-
-    vehicles = k.get_vehicles().get('vehicleLinks')
-    if parsed_args.vin:
-        possible_vehicles = [v for v in vehicles if v['vin'] == parsed_args.vin]
-        if len(possible_vehicles) == 0:
-            raise RuntimeError('Specified VIN {} not found! Use `pyze vehicles` to list available vehicles.'.format(parsed_args.vin))
-
-        vin = possible_vehicles[0]['vin']
-
-    elif parsed_args.reg:
-        possible_vehicles = [v for v in vehicles if v['vehicleDetails']['registrationNumber'] == parsed_args.vin.replace(' ', '').upper()][0]
-
-        if len(possible_vehicles) == 0:
-            raise RuntimeError('Specified registration plate {} not found! Use `pyze vehicles` to list available vehicles.'.format(parsed_args.reg))
-
-        vin = possible_vehicles[0]['vin']
-
-    else:
-        vin = vehicles[0]['vin']
-
-    v = Vehicle(vin, k)
+    v = get_vehicle(parsed_args)
 
     status = v.battery_status()
     # {'lastUpdateTime': '2019-07-12T00:38:01Z', 'chargePower': 2, 'instantaneousPower': 6600, 'plugStatus': 1, 'chargeStatus': 1, 'batteryLevel': 28, 'rangeHvacOff': 64, 'timeRequiredToFullSlow': 295}

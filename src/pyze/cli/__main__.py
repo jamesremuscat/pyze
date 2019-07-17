@@ -4,12 +4,14 @@ import sys
 
 from .ac import run as ac
 from .login import run as login
+from .schedule import run as schedule
 from .status import run as status
 from .vehicles import run as vehicles
 
 commands = {
     'ac': ac,
     'login': login,
+    'schedule': schedule,
     'status': status,
     'vehicles': vehicles
 }

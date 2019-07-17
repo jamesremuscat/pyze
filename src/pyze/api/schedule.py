@@ -1,4 +1,5 @@
 import datetime
+import math
 
 
 def _parse_schedule(data):
@@ -57,6 +58,9 @@ class ChargeSchedule(object):
         # Note: we must allow the schedule to be invalidated here as it might require subsequent assignments
         # to make it valid (or else risk it being essentially immutable without gymnastics).
         self._schedule[key] = [value]
+
+    def items(self):
+        return self._schedule.items()
 
     def __iter__(self):
         return self._schedule.items().__iter__()
@@ -118,6 +122,10 @@ class ScheduledCharge(object):
         start = _minuteize(self.start_time)
         finish = start + self.duration
         return finish % MINUTES_IN_DAY
+
+    @property
+    def finish_time(self):
+        return _deminuteize(self.finish_time_minutes)
 
     def overlaps(self, other):
         return self.finish_time_minutes >= _minuteize(other.start_time)
