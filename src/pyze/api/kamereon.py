@@ -216,12 +216,25 @@ class Vehicle(object):
             raise RuntimeError('`period` should be one of `month`, `day`')
 
         return self._get(
-            'charge-history?type={}}&start={}&end={}'.format(
+            'charge-history?type={}&start={}&end={}'.format(
                 period,
                 start.strftime(PERIOD_FORMATS[period]),
                 end.strftime(PERIOD_FORMATS[period])
             )
         )['chargeSummaries']
+
+    def hvac_history(self, start, end):
+        if not isinstance(start, datetime.datetime):
+            raise RuntimeError('`start` should be an instance of datetime.datetime, not {}'.format(start.__class__))
+        if not isinstance(end, datetime.datetime):
+            raise RuntimeError('`end` should be an instance of datetime.datetime, not {}'.format(end.__class__))
+
+        return self._get(
+            'hvac-sessions?start={}&end={}'.format(
+                start.strftime('%Y%m%d'),
+                end.strftime('%Y%m%d')
+            )
+        ).get('hvacSessions', [])
 
     def hvac_statistics(self, start, end, period='month'):
         if not isinstance(start, datetime.datetime):
