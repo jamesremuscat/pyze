@@ -1,23 +1,21 @@
 from .common import add_vehicle_args, get_vehicle
 from tabulate import tabulate
 
-import argparse
 import dateutil.parser
 import dateutil.tz
 
 
 KM_PER_MILE = 1.609344
 
+help_text = 'Show the current status of your vehicle.'
 
-def _parse_args(args):
-    parser = argparse.ArgumentParser()
+
+def configure_parser(parser):
     add_vehicle_args(parser)
-    parser.add_argument('--km', help='Give estimated range in kilometers (default is miles)', action='store_true')
-    return parser.parse_args(args)
+    parser.add_argument('--km', help='Give distances in kilometers (default is miles)', action='store_true')
 
 
-def run(args):
-    parsed_args = _parse_args(args)
+def run(parsed_args):
     v = get_vehicle(parsed_args)
 
     status = v.battery_status()

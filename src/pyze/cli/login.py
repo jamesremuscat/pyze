@@ -3,6 +3,9 @@ from pyze.api import CredentialStore, Gigya
 import getpass
 
 
+help_text = 'Log in to your MY Renault account.'
+
+
 def run(args):
     creds = CredentialStore()
 

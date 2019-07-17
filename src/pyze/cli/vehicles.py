@@ -1,6 +1,9 @@
 from pyze.api import Kamereon
 
 
+help_text = 'List the vehicles on your account.'
+
+
 def run(args):
     k = Kamereon()
 

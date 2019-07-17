@@ -2,40 +2,36 @@ from .common import add_vehicle_args, get_vehicle
 from pyze.api.schedule import DAYS, ScheduledCharge
 from tabulate import tabulate
 
-import argparse
 import re
 
 
-def _parse_args(args):
-    parser = argparse.ArgumentParser()
+help_text = 'Show or edit your vehicle\'s charge schedule.'
 
+
+def configure_parser(parser):
     add_vehicle_args(parser)
 
     subparsers = parser.add_subparsers()
 
     show_parser = subparsers.add_parser("show")
-    show_parser.set_defaults(func=show)
+    show_parser.set_defaults(schedule_func=show)
 
     edit_parser = subparsers.add_parser("edit")
-    edit_parser.set_defaults(func=edit)
+    edit_parser.set_defaults(schedule_func=edit)
 
     for day in DAYS:
         edit_parser.add_argument(
             '--{}'.format(day)
         )
 
-    return parser.parse_args(args)
 
-
-def run(args):
-    parsed_args = _parse_args(args)
-
+def run(parsed_args):
     v = get_vehicle(parsed_args)
 
     schedule = v.charge_schedule()
 
-    if hasattr(parsed_args, 'func'):
-        parsed_args.func(schedule, v, parsed_args)
+    if hasattr(parsed_args, 'schedule_func'):
+        parsed_args.schedule_func(schedule, v, parsed_args)
     else:
         show(schedule, v, parsed_args)
 
