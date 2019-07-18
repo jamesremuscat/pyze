@@ -14,6 +14,7 @@ COMMAND_MODULES = [
     'ac-history',
     'ac-stats',
     'charge-history',
+    'charge-stats',
     'login',
     'schedule',
     'status',
