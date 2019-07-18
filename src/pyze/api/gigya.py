@@ -13,12 +13,13 @@ class Gigya(object):
     def __init__(self, credentials):
         self._api_key = os.environ.get('GIGYA_API_KEY')
         self._credentials = credentials
+        self._session = requests.Session()
 
         if self._api_key is None:
             raise Exception('GIGYA_API_KEY environment variable not specified but required')
 
     def login(self, user, password):
-        response = requests.post(
+        response = self._session.post(
             _ROOT_URL + 'accounts.login',
             data={
                 'ApiKey': self._api_key,
@@ -45,7 +46,7 @@ class Gigya(object):
     @lru_cache(maxsize=1)
     @requires_credentials('gigya')
     def account_info(self):
-        response = requests.post(
+        response = self._session.post(
             _ROOT_URL + 'accounts.getAccountInfo',
             {
                 'oauth_token': self._credentials['gigya']
@@ -69,7 +70,7 @@ class Gigya(object):
         if 'gigya-token' in self._credentials:
             return self._credentials['gigya-token']
 
-        response = requests.post(
+        response = self._session.post(
             _ROOT_URL + 'accounts.getJWT',
             {
                 'oauth_token': self._credentials['gigya'],

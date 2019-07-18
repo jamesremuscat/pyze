@@ -37,13 +37,14 @@ class Kamereon(CachingAPIObject):
         self._credentials = credentials
         self._country = country
         self._gigya = Gigya(self._credentials)
+        self._session = requests.Session()
 
     @requires_credentials('gigya', 'gigya-person-id')
     def get_account_id(self):
         if 'kamereon-account' in self._credentials:
             return self._credentials['kamereon-account']
 
-        response = requests.get(
+        response = self._session.get(
             '{}/persons/{}?country={}'.format(
                 _ROOT_URL,
                 self._credentials['gigya-person-id'],
@@ -74,7 +75,7 @@ class Kamereon(CachingAPIObject):
         if 'kamereon' in self._credentials:
             return self._credentials['kamereon']
 
-        response = requests.get(
+        response = self._session.get(
             '{}/accounts/{}/kamereon/token?country={}'.format(
                 _ROOT_URL,
                 self.get_account_id(),
@@ -100,7 +101,7 @@ class Kamereon(CachingAPIObject):
 
     @lru_cache(maxsize=1)
     def get_vehicles(self):
-        response = requests.get(
+        response = self._session.get(
             '{}/accounts/{}/vehicles?country={}'.format(
                 _ROOT_URL,
                 self.get_account_id(),
@@ -125,7 +126,7 @@ class Vehicle(object):
         self._kamereon = kamereon or Kamereon()
 
     def _request(self, method, endpoint, **kwargs):
-        return requests.request(
+        return self._kamereon._session.request(
             method,
             endpoint,
             headers={
