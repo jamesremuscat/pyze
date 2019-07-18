@@ -1,6 +1,6 @@
 from .credentials import CredentialStore, requires_credentials
 from .gigya import Gigya
-from .schedule import ChargeSchedule
+from .schedule import ChargeSchedule, ChargeMode
 from collections import namedtuple
 from functools import lru_cache
 
@@ -173,7 +173,11 @@ class Vehicle(object):
         return self._get('hvac-status')
 
     def charge_mode(self):
-        return self._get('charge-mode')
+        raw_mode = self._get('charge-mode')['chargeMode']
+        if hasattr(ChargeMode, raw_mode):
+            return getattr(ChargeMode, raw_mode)
+        else:
+            return raw_mode
 
     def mileage(self):
         return self._get('cockpit')

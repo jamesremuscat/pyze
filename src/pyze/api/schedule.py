@@ -1,3 +1,5 @@
+from enum import Enum
+
 import datetime
 import math
 
@@ -22,6 +24,11 @@ DAYS = [
 ]
 
 MINUTES_IN_DAY = 60 * 24
+
+
+class ChargeMode(Enum):
+    always_charging = 'Always charge'
+    schedule_mode = 'Scheduled charge'
 
 
 class ChargeSchedule(object):

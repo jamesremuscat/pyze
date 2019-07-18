@@ -21,7 +21,7 @@ def run(parsed_args):
     status = v.battery_status()
     # {'lastUpdateTime': '2019-07-12T00:38:01Z', 'chargePower': 2, 'instantaneousPower': 6600, 'plugStatus': 1, 'chargeStatus': 1, 'batteryLevel': 28, 'rangeHvacOff': 64, 'timeRequiredToFullSlow': 295}
     plugged_in, charging = status['plugStatus'] > 0, status['chargeStatus'] > 0
-    charge_mode = v.charge_mode()['chargeMode']
+    charge_mode = v.charge_mode()
 
     hvac = v.hvac_status()
 
@@ -59,7 +59,7 @@ def run(parsed_args):
         ['Plugged in', 'Yes' if plugged_in else 'No'],
         ['Charging', 'Yes' if charging else 'No'],
         ['Charge rate', "{:.2f}kW".format(status['instantaneousPower'] / 1000)] if 'instantaneousPower' in status else None,
-        ['Charge mode', charge_mode],
+        ['Charge mode', charge_mode.value if hasattr(charge_mode, 'value') else charge_mode],
         ['AC state', hvac['hvacStatus']],
         ['AC start at', hvac_start] if hvac_start else None,
         ['External temperature', "{}°C".format(hvac['externalTemperature'])],
