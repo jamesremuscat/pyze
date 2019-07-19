@@ -1,4 +1,4 @@
-from .common import add_vehicle_args, get_vehicle
+from .common import add_vehicle_args, format_duration_minutes, get_vehicle
 from pyze.api.schedule import DAYS, ScheduledCharge
 from tabulate import tabulate
 
@@ -77,7 +77,7 @@ def format_scheduled_charge(sc):
             format_stringy_time(sc.finish_time),
             '+' if sc.spans_midnight else ''
         ),
-        sc.duration
+        format_duration_minutes(sc.duration)
     ]
 
 

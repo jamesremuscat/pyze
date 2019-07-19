@@ -1,4 +1,4 @@
-from .common import add_history_args, add_vehicle_args, get_vehicle
+from .common import add_history_args, add_vehicle_args, format_duration_minutes, get_vehicle
 from datetime import datetime
 from tabulate import tabulate
 
@@ -27,6 +27,19 @@ def run(parsed_args):
         to_date = now
 
     print(
-        v.charge_statistics(from_date, to_date, parsed_args.period),
+        tabulate(
+            [_format_charge_stat(s) for s in v.charge_statistics(from_date, to_date, parsed_args.period)],
+            headers={
+                'day': 'Day',
+                'month': 'Month',
+                'totalChargesNumber': 'Number of charges',
+                'totalChargesDuration': 'Total time charging',
+                'totalChargesErrors': 'Errors'
+            }
+        )
     )
-    print('NOTE: The format for this data isn\'t yet known, so raw output is shown above.')
+
+
+def _format_charge_stat(s):
+    s['totalChargesDuration'] = format_duration_minutes(s.get('totalChargesDuration', 0))
+    return s

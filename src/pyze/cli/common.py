@@ -1,3 +1,4 @@
+from datetime import timedelta
 from pyze.api import Kamereon, Vehicle
 
 import dateparser
@@ -40,3 +41,8 @@ def get_vehicle(parsed_args):
         vin = vehicles[0]['vin']
 
     return Vehicle(vin, k)
+
+
+def format_duration_minutes(mins):
+    d = timedelta(minutes=mins)
+    return str(d)

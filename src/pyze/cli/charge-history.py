@@ -1,8 +1,11 @@
-from .common import add_history_args, add_vehicle_args, get_vehicle
+from .common import add_history_args, add_vehicle_args, format_duration_minutes, get_vehicle
 from datetime import datetime
+from tabulate import tabulate
 
 
 help_text = 'Show charge history for your vehicle.'
+
+DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 
 def configure_parser(parser):
@@ -25,5 +28,40 @@ def run(parsed_args):
     else:
         to_date = now
 
-    print(v.charge_history(from_date, to_date))
-    print('NOTE: The format for this data isn\'t yet known, so raw output is shown above.')
+    print(
+        tabulate(
+            [_format_charge_history(h) for h in v.charge_history(from_date, to_date)],
+            headers=[
+                'Charge start',
+                'Charge end',
+                'Duration',
+                'Power (kW)',
+                'Charge gained (%)',
+                'Status'
+            ]
+        )
+    )
+
+
+def _format_charge_history(ch):
+
+    start_date = dateutil.parser.parse(
+        ch['chargeStartDate']
+    ).astimezone(
+        dateutil.tz.tzlocal()
+    )
+
+    end_date = dateutil.parser.parse(
+        ch['chargeEndDate']
+    ).astimezone(
+        dateutil.tz.tzlocal()
+    )
+
+    return [
+        start_date.strftime(DATE_FORMAT),
+        end_date.strftime(DATE_FORMAT),
+        format_duration_minutes(ch['chargeDuration']),
+        '{:.2f}'.format(ch['chargeStartInstantaneousPower'] / 1000),
+        ch['chargeBatteryLevelRecovered'],
+        ch['chargeEndStatus']
+    ]
