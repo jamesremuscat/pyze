@@ -1,4 +1,4 @@
-from .common import add_vehicle_args, get_vehicle
+from .common import add_vehicle_args, format_duration_minutes, get_vehicle
 from tabulate import tabulate
 
 import dateutil.parser
@@ -59,6 +59,7 @@ def run(parsed_args):
         ['Plugged in', 'Yes' if plugged_in else 'No'],
         ['Charging', 'Yes' if charging else 'No'],
         ['Charge rate', "{:.2f}kW".format(status['instantaneousPower'] / 1000)] if 'instantaneousPower' in status else None,
+        ['Time remaining', format_duration_minutes(status['timeRequiredToFullSlow'])[:-3]] if 'timeRequiredToFullSlow' in status else None,
         ['Charge mode', charge_mode.value if hasattr(charge_mode, 'value') else charge_mode],
         ['AC state', hvac['hvacStatus']],
         ['AC start at', hvac_start] if hvac_start else None,
