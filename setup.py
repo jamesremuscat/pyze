@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-_VERSION = '0.0.1'
+_VERSION = '0.1.0'
 
 setup(
     name='PyZE',
