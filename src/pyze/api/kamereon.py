@@ -300,6 +300,22 @@ class Vehicle(object):
             simplejson.loads(simplejson.dumps(data, for_json=True))
         )
 
+    def set_charge_mode(self, charge_mode):
+        if not isinstance(charge_mode, ChargeMode):
+            raise RuntimeError('Expceted charge_mode to be instance of ChargeMode, but got {} instead'.format(charge_mode.__class__))
+
+        data = {
+            'type': 'ChargeMode',
+            'attributes': {
+                'action': charge_mode.name
+            }
+        }
+
+        return self._post(
+            'actions/charge-mode',
+            data
+        )
+
 
 PERIOD_FORMATS = {
     'day': '%Y%m%d',
