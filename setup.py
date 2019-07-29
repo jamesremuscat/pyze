@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-_VERSION = '0.1.0'
+_VERSION = '0.1.1'
 
 setup(
     name='PyZE',
@@ -9,7 +9,7 @@ setup(
     author='James Muscat',
     author_email='jamesremuscat@gmail.com',
     url='https://github.com/jamesremuscat/pyze',
-    packages=['pyze'],
+    packages=find_packages('src'),
     package_dir={'': 'src'},
     long_description="Unofficial client and API for Renault ZE.",
     install_requires=[
