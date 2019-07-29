@@ -9,7 +9,11 @@ import dateutil.tz
 import jwt
 import os
 import requests
-import simplejson
+try:
+    import json
+except ImportError:
+    # python 2.5
+    import simplejson as json
 
 
 _ROOT_URL = 'https://api-wired-prod-1-euw1.wrd-aws.com/commerce/v1'
@@ -297,7 +301,7 @@ class Vehicle(object):
 
         return self._post(
             'actions/charge-schedule',
-            simplejson.loads(simplejson.dumps(data, for_json=True))
+            json.loads(json.dumps(data, for_json=True))
         )
 
     def set_charge_mode(self, charge_mode):
