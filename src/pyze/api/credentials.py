@@ -50,6 +50,7 @@ class CredentialStore(object):
     class _CredentialStore(object):
         def __init__(self):
             self._store = init_store()
+            self._add_api_keys_from_env()
 
         def __getitem__(self, name):
             if name in self._store:
@@ -80,7 +81,15 @@ class CredentialStore(object):
 
         def clear(self):
             self._store = {}
+            self._add_api_keys_from_env()
             self._write()
+
+        def _add_api_keys_from_env(self):
+            if 'GIGYA_API_KEY' in os.environ:
+                self.store('gigya-api-key', os.environ['GIGYA_API_KEY'], None)
+
+            if 'KAMEREON_API_KEY' in os.environ:
+                self.store('kamereon-api-key', os.environ['KAMEREON_API_KEY'], None)
 
 
 Credential = namedtuple(
