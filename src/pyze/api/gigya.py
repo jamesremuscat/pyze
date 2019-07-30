@@ -99,4 +99,4 @@ class Gigya(object):
             self._credentials['gigya-token'] = (token, decoded['exp'])
             return token
 
-        return False
+        raise RuntimeError('Unable to find Gigya JWT token in response: {}'.format(response.text))
