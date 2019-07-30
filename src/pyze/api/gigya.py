@@ -1,4 +1,4 @@
-from .credentials import requires_credentials
+from .credentials import requires_credentials, CredentialStore
 from functools import lru_cache
 
 import jwt
@@ -10,7 +10,7 @@ _ROOT_URL = 'https://accounts.eu1.gigya.com/'
 
 
 class Gigya(object):
-    def __init__(self, credentials):
+    def __init__(self, credentials=CredentialStore()):
         self._api_key = os.environ.get('GIGYA_API_KEY')
         self._credentials = credentials
         self._session = requests.Session()

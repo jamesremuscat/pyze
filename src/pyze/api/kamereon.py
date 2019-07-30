@@ -28,7 +28,7 @@ class CachingAPIObject(object):
 
 
 class Kamereon(CachingAPIObject):
-    def __init__(self, credentials=CredentialStore(), country='GB'):
+    def __init__(self, credentials=CredentialStore(), gigya=None, country='GB'):
         self._api_key = os.environ.get('KAMEREON_API_KEY')
 
         if not self._api_key:
@@ -36,7 +36,7 @@ class Kamereon(CachingAPIObject):
 
         self._credentials = credentials
         self._country = country
-        self._gigya = Gigya(self._credentials)
+        self._gigya = gigya or Gigya(self._credentials)
         self._session = requests.Session()
 
     @requires_credentials('gigya', 'gigya-person-id')

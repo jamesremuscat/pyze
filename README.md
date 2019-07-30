@@ -19,8 +19,9 @@ from pyze.api import Gigya, Kamereon, Vehicle
 
 g = Gigya()
 g.login('email', 'password')  # You should only need to do this once
+g.account_info()  # Retrieves and caches person ID
 
-k = Kamereon(g)  # Gigya argument is optional - if not supplied it will create one
+k = Kamereon(gigya=g)  # Gigya argument is optional - if not supplied it will create one
 
 v = Vehicle('YOUR_VIN', k)  # Kamereon argument is likewise optional
 
