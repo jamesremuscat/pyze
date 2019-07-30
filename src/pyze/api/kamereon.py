@@ -30,23 +30,25 @@ class CachingAPIObject(object):
 class Kamereon(CachingAPIObject):
     def __init__(
         self,
-        credentials=CredentialStore(),
+        api_key=None,
+        credentials=None,
         gigya=None,
         country='GB',
         root_url=DEFAULT_ROOT_URL
     ):
-        self._api_key = os.environ.get('KAMEREON_API_KEY')
-
-        if not self._api_key:
-            raise Exception('KAMEREON_API_KEY environment variable not defined but required')
 
         self._root_url = root_url
-        self._credentials = credentials
+        self._credentials = credentials or CredentialStore()
         self._country = country
-        self._gigya = gigya or Gigya(self._credentials)
+        self._gigya = gigya or Gigya(credentials=self._credentials)
         self._session = requests.Session()
+        if api_key:
+            self._credentials.store('kamereon-api-key', api_key, None)
 
-    @requires_credentials('gigya', 'gigya-person-id')
+    def set_api_key(self, api_key):
+        self._credentials.store('kamereon-api-key', api_key, None)
+
+    @requires_credentials('gigya', 'gigya-person-id', 'kamereon-api-key')
     def get_account_id(self):
         if 'kamereon-account' in self._credentials:
             return self._credentials['kamereon-account']
@@ -58,7 +60,7 @@ class Kamereon(CachingAPIObject):
                 self._country
             ),
             headers={
-                'apikey': self._api_key,
+                'apikey': self._credentials['kamereon-api-key'],
                 'x-gigya-id_token': self._gigya.get_jwt_token()
             }
         )
@@ -77,7 +79,7 @@ class Kamereon(CachingAPIObject):
         self._credentials['kamereon-account'] = (account['accountId'], None)
         return account['accountId']
 
-    @requires_credentials('gigya', 'gigya-person-id')
+    @requires_credentials('gigya', 'gigya-person-id', 'kamereon-api-key')
     def get_token(self):
         if 'kamereon' in self._credentials:
             return self._credentials['kamereon']
@@ -89,7 +91,7 @@ class Kamereon(CachingAPIObject):
                 self._country
             ),
             headers={
-                'apikey': self._api_key,
+                'apikey': self._credentials['kamereon-api-key'],
                 'x-gigya-id_token': self._gigya.get_jwt_token()
             }
         )
@@ -107,6 +109,7 @@ class Kamereon(CachingAPIObject):
         return False
 
     @lru_cache(maxsize=1)
+    @requires_credentials('kamereon-api-key')
     def get_vehicles(self):
         response = self._session.get(
             '{}/accounts/{}/vehicles?country={}'.format(
@@ -115,7 +118,7 @@ class Kamereon(CachingAPIObject):
                 self._country
             ),
             headers={
-                'apikey': self._api_key,
+                'apikey': self._credentials['kamereon-api-key'],
                 'x-gigya-id_token': self._gigya.get_jwt_token(),
                 'x-kamereon-authorization': 'Bearer {}'.format(self.get_token())
             }
@@ -133,13 +136,14 @@ class Vehicle(object):
         self._kamereon = kamereon or Kamereon()
         self._root_url = self._kamereon._root_url
 
+    @requires_credentials('kamereon-api-key')
     def _request(self, method, endpoint, **kwargs):
         return self._kamereon._session.request(
             method,
             endpoint,
             headers={
                 'Content-type': 'application/vnd.api+json',
-                'apikey': self._kamereon._api_key,
+                'apikey': self._kamereon._credentials['kamereon-api-key'],
                 'x-gigya-id_token': self._kamereon._gigya.get_jwt_token(),
                 'x-kamereon-authorization': 'Bearer {}'.format(self._kamereon.get_token())
             },
