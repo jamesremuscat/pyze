@@ -6,21 +6,22 @@ import os
 import requests
 
 
-_ROOT_URL = 'https://accounts.eu1.gigya.com/'
+DEFAULT_ROOT_URL = 'https://accounts.eu1.gigya.com/'
 
 
 class Gigya(object):
-    def __init__(self, credentials=CredentialStore()):
+    def __init__(self, credentials=CredentialStore(), root_url=DEFAULT_ROOT_URL):
         self._api_key = os.environ.get('GIGYA_API_KEY')
         self._credentials = credentials
         self._session = requests.Session()
+        self._root_url = root_url
 
         if self._api_key is None:
             raise Exception('GIGYA_API_KEY environment variable not specified but required')
 
     def login(self, user, password):
         response = self._session.post(
-            _ROOT_URL + 'accounts.login',
+            self._root_url + 'accounts.login',
             data={
                 'ApiKey': self._api_key,
                 'loginID': user,
@@ -47,7 +48,7 @@ class Gigya(object):
     @requires_credentials('gigya')
     def account_info(self):
         response = self._session.post(
-            _ROOT_URL + 'accounts.getAccountInfo',
+            self._root_url + 'accounts.getAccountInfo',
             {
                 'oauth_token': self._credentials['gigya']
             }
@@ -71,7 +72,7 @@ class Gigya(object):
             return self._credentials['gigya-token']
 
         response = self._session.post(
-            _ROOT_URL + 'accounts.getJWT',
+            self._root_url + 'accounts.getJWT',
             {
                 'oauth_token': self._credentials['gigya'],
                 'fields': 'data.personId,data.gigyaDataCenter',
