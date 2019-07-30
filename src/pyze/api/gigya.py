@@ -20,7 +20,7 @@ class Gigya(object):
         self._session = requests.Session()
         self._root_url = root_url
         if api_key:
-            self._credentials.store('gigya-api-key', api_key, None)
+            self.set_api_key(api_key)
 
     def set_api_key(self, api_key):
         self._credentials.store('gigya-api-key', api_key, None)

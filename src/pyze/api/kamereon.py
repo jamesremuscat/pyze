@@ -43,7 +43,7 @@ class Kamereon(CachingAPIObject):
         self._gigya = gigya or Gigya(credentials=self._credentials)
         self._session = requests.Session()
         if api_key:
-            self._credentials.store('kamereon-api-key', api_key, None)
+            self.set_api_key(api_key)
 
     def set_api_key(self, api_key):
         self._credentials.store('kamereon-api-key', api_key, None)
