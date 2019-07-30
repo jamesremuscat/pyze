@@ -12,7 +12,7 @@ import requests
 import simplejson
 
 
-_ROOT_URL = 'https://api-wired-prod-1-euw1.wrd-aws.com/commerce/v1'
+DEFAULT_ROOT_URL = 'https://api-wired-prod-1-euw1.wrd-aws.com/commerce/v1'
 
 
 class AccountException(Exception):
@@ -28,12 +28,19 @@ class CachingAPIObject(object):
 
 
 class Kamereon(CachingAPIObject):
-    def __init__(self, credentials=CredentialStore(), gigya=None, country='GB'):
+    def __init__(
+        self,
+        credentials=CredentialStore(),
+        gigya=None,
+        country='GB',
+        root_url=DEFAULT_ROOT_URL
+    ):
         self._api_key = os.environ.get('KAMEREON_API_KEY')
 
         if not self._api_key:
             raise Exception('KAMEREON_API_KEY environment variable not defined but required')
 
+        self._root_url = root_url
         self._credentials = credentials
         self._country = country
         self._gigya = gigya or Gigya(self._credentials)
@@ -46,7 +53,7 @@ class Kamereon(CachingAPIObject):
 
         response = self._session.get(
             '{}/persons/{}?country={}'.format(
-                _ROOT_URL,
+                self._root_url,
                 self._credentials['gigya-person-id'],
                 self._country
             ),
@@ -77,7 +84,7 @@ class Kamereon(CachingAPIObject):
 
         response = self._session.get(
             '{}/accounts/{}/kamereon/token?country={}'.format(
-                _ROOT_URL,
+                self._root_url,
                 self.get_account_id(),
                 self._country
             ),
@@ -103,7 +110,7 @@ class Kamereon(CachingAPIObject):
     def get_vehicles(self):
         response = self._session.get(
             '{}/accounts/{}/vehicles?country={}'.format(
-                _ROOT_URL,
+                self._root_url,
                 self.get_account_id(),
                 self._country
             ),
@@ -124,6 +131,7 @@ class Vehicle(object):
     def __init__(self, vin, kamereon=None):
         self._vin = vin
         self._kamereon = kamereon or Kamereon()
+        self._root_url = self._kamereon._root_url
 
     def _request(self, method, endpoint, **kwargs):
         return self._kamereon._session.request(
@@ -142,7 +150,7 @@ class Vehicle(object):
         response = self._request(
             'GET',
             '{}/accounts/kmr/remote-services/car-adapter/v1/cars/{}/{}'.format(
-                _ROOT_URL,
+                self._root_url,
                 self._vin,
                 endpoint
             )
@@ -155,7 +163,7 @@ class Vehicle(object):
         response = self._request(
             'POST',
             '{}/accounts/kmr/remote-services/car-adapter/v1/cars/{}/{}'.format(
-                _ROOT_URL,
+                self._root_url,
                 self._vin,
                 endpoint
             ),
