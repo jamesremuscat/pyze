@@ -2,11 +2,7 @@ from collections import namedtuple
 
 import os
 import time
-try:
-    import json
-except ImportError:
-    # python 2.5
-    import simplejson as json
+import json
 
 
 TOKEN_STORE = os.environ.get('PYZE_TOKEN_STORE', os.path.expanduser('~/.credentials/pyze.json'))

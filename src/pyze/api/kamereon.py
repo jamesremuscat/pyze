@@ -9,11 +9,7 @@ import dateutil.tz
 import jwt
 import os
 import requests
-try:
-    import json
-except ImportError:
-    # python 2.5
-    import simplejson as json
+import json
 
 
 _ROOT_URL = 'https://api-wired-prod-1-euw1.wrd-aws.com/commerce/v1'
