@@ -17,12 +17,15 @@ pyze status
 ```python
 from pyze.api import Gigya, Kamereon, Vehicle
 
-g = Gigya()
-g.login('email', 'password')  # You should only need to do this once
+c = CredentialStore()
 
-k = Kamereon(g)  # Gigya argument is optional - if not supplied it will create one
+g = Gigya(c)
+g.login('email', 'password')
+g.account_info()
 
-v = Vehicle('YOUR_VIN', k)  # Kamereon argument is likewise optional
+k = Kamereon(c, g)
+
+v = Vehicle('YOUR_VIN', k)
 
 v.battery_status()
 ```
