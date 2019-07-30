@@ -63,6 +63,10 @@ class CredentialStore(object):
             return self.store(name, *value)
 
         def store(self, name, token, expiry):
+            if not isinstance(name, str):
+                raise RuntimeError('Credential name must be a string')
+            if not isinstance(token, str):
+                raise RuntimeError('Credential value must be a string')
             self._store[name] = Credential(token, expiry)
             self._write()
 
