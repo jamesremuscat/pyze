@@ -1,8 +1,8 @@
 from collections import namedtuple
 
 import os
-import simplejson
 import time
+import json
 
 
 TOKEN_STORE = os.environ.get('PYZE_TOKEN_STORE', os.path.expanduser('~/.credentials/pyze.json'))
@@ -28,7 +28,7 @@ def init_store():
     new_store = {}
     try:
         with open(TOKEN_STORE, 'r') as token_store:
-            stored = simplejson.load(token_store)
+            stored = json.load(token_store)
 
             for key, value in stored.items():
                 new_store[key] = Credential(value['token'], value['expiry'])
@@ -75,7 +75,7 @@ class CredentialStore(object):
             if not os.path.isdir(dirname):
                 os.makedirs(dirname)
             with open(TOKEN_STORE, 'w') as token_store:
-                simplejson.dump(self._store, token_store)
+                json.dump(self._store, token_store)
 
         def __contains__(self, name):
             try:
