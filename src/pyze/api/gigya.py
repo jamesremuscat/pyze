@@ -6,7 +6,7 @@ import os
 import requests
 
 
-DEFAULT_ROOT_URL = 'https://accounts.eu1.gigya.com/'
+DEFAULT_ROOT_URL = 'https://accounts.eu1.gigya.com'
 
 
 class Gigya(object):
@@ -30,7 +30,7 @@ class Gigya(object):
             raise RuntimeError('Gigya API key not specified. Call set_api_key or set GIGYA_API_KEY environment variable.')
 
         response = self._session.post(
-            self._root_url + 'accounts.login',
+            self._root_url + '/accounts.login',
             data={
                 'ApiKey': self._credentials['gigya-api-key'],
                 'loginID': user,
@@ -57,7 +57,7 @@ class Gigya(object):
     @requires_credentials('gigya')
     def account_info(self):
         response = self._session.post(
-            self._root_url + 'accounts.getAccountInfo',
+            self._root_url + '/accounts.getAccountInfo',
             {
                 'oauth_token': self._credentials['gigya']
             }
@@ -81,7 +81,7 @@ class Gigya(object):
             return self._credentials['gigya-token']
 
         response = self._session.post(
-            self._root_url + 'accounts.getJWT',
+            self._root_url + '/accounts.getJWT',
             {
                 'oauth_token': self._credentials['gigya'],
                 'fields': 'data.personId,data.gigyaDataCenter',
