@@ -17,7 +17,6 @@ setup(
         'pyjwt',
         'python-dateutil',
         'requests',
-        'simplejson',
         'tabulate'
     ],
     setup_requires=[
