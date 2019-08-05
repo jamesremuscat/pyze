@@ -297,6 +297,17 @@ class Vehicle(object):
             }
         )
 
+    def cancel_ac(self):
+        return self._post(
+            'actions/hvac-start',
+            {
+                'type': 'HvacStart',
+                'attributes': {
+                    'action': 'cancel'
+                }
+            }
+        )
+
     def set_charge_schedule(self, schedule):
         if not isinstance(schedule, ChargeSchedule):
             raise RuntimeError('Expected schedule to be instance of ChargeSchedule, but got {} instead'.format(schedule.__class__))
