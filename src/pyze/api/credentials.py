@@ -17,7 +17,7 @@ def requires_credentials(*names):
         def inner(*args, **kwargs):
             for name in names:
                 if name not in CredentialStore():
-                    raise MissingCredentialException()
+                    raise MissingCredentialException(name)
             return func(*args, **kwargs)
 
         return inner
@@ -31,8 +31,7 @@ def init_store():
             stored = json.load(token_store)
 
             for key, value in stored.items():
-                new_store[key] = Credential(value['token'], value['expiry'])
-
+                new_store[key] = Credential(*value)
     except:
         pass
 
