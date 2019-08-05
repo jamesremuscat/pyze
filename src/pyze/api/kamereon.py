@@ -12,7 +12,7 @@ import requests
 import json
 
 
-DEFAULT_ROOT_URL = 'https://api-wired-prod-1-euw1.wrd-aws.com/commerce/v1'
+DEFAULT_ROOT_URL = 'https://api-wired-prod-1-euw1.wrd-aws.com'
 
 
 class AccountException(Exception):
@@ -54,7 +54,7 @@ class Kamereon(CachingAPIObject):
             return self._credentials['kamereon-account']
 
         response = self._session.get(
-            '{}/persons/{}?country={}'.format(
+            '{}/commerce/v1/persons/{}?country={}'.format(
                 self._root_url,
                 self._credentials['gigya-person-id'],
                 self._country
@@ -85,7 +85,7 @@ class Kamereon(CachingAPIObject):
             return self._credentials['kamereon']
 
         response = self._session.get(
-            '{}/accounts/{}/kamereon/token?country={}'.format(
+            '{}/commerce/v1/accounts/{}/kamereon/token?country={}'.format(
                 self._root_url,
                 self.get_account_id(),
                 self._country
@@ -112,7 +112,7 @@ class Kamereon(CachingAPIObject):
     @requires_credentials('kamereon-api-key')
     def get_vehicles(self):
         response = self._session.get(
-            '{}/accounts/{}/vehicles?country={}'.format(
+            '{}/commerce/v1/accounts/{}/vehicles?country={}'.format(
                 self._root_url,
                 self.get_account_id(),
                 self._country
@@ -153,7 +153,7 @@ class Vehicle(object):
     def _get(self, endpoint):
         response = self._request(
             'GET',
-            '{}/accounts/kmr/remote-services/car-adapter/v1/cars/{}/{}'.format(
+            '{}/commerce/v1/accounts/kmr/remote-services/car-adapter/v1/cars/{}/{}'.format(
                 self._root_url,
                 self._vin,
                 endpoint
@@ -166,7 +166,7 @@ class Vehicle(object):
     def _post(self, endpoint, data):
         response = self._request(
             'POST',
-            '{}/accounts/kmr/remote-services/car-adapter/v1/cars/{}/{}'.format(
+            '{}/commerce/v1/accounts/kmr/remote-services/car-adapter/v1/cars/{}/{}'.format(
                 self._root_url,
                 self._vin,
                 endpoint
