@@ -9,7 +9,7 @@ import dateutil.tz
 import jwt
 import os
 import requests
-import json
+import simplejson
 
 
 DEFAULT_ROOT_URL = 'https://api-wired-prod-1-euw1.wrd-aws.com'
@@ -320,7 +320,7 @@ class Vehicle(object):
 
         return self._post(
             'actions/charge-schedule',
-            json.loads(json.dumps(data, for_json=True))
+            simplejson.loads(simplejson.dumps(data, for_json=True))
         )
 
     def set_charge_mode(self, charge_mode):
