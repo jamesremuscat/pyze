@@ -18,7 +18,8 @@ setup(
         'python-dateutil',
         'requests',
         'simplejson',
-        'tabulate'
+        'tabulate',
+        'tzlocal'
     ],
     setup_requires=[
         'pytest-runner',

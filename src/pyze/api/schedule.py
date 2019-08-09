@@ -94,6 +94,8 @@ class ScheduledCharge(object):
         Convenience method for creating a scheduled charge between two
         datetimes. The date part of the datetimes is used only for calculating
         the interval between them (hence the duration of the charge).
+
+        Times should be in UTC. No timezone conversion is applied by this method.
         '''
         if not isinstance(start, datetime.datetime):
             raise RuntimeError('Expected start to be a datetime, got {} instead'.format(start.__class__))
