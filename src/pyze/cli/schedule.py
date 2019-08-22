@@ -93,11 +93,14 @@ def format_scheduled_charge(sc, use_utc):
         start = apply_offset(sc.start_time)
         finish = apply_offset(sc.finish_time)
 
+    offset = timezone_offset()
+    offset_mins = offset[1] + (60 * offset[0])
+
     return [
         format_stringy_time(start),
         "{}{}".format(
             format_stringy_time(finish),
-            '+' if sc.spans_midnight else ''
+            '+' if sc.spans_midnight_in(offset_mins) else ''
         ),
         format_duration_minutes(sc.duration)
     ]
@@ -118,7 +121,7 @@ def apply_offset(raw):
     raw_minutes = int(raw[2:])
 
     return "{:02g}{:02g}".format(
-        raw_hours + offset_hours,
+        (raw_hours + offset_hours) % 24,
         raw_minutes + offset_minutes
     )
 

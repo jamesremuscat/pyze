@@ -126,6 +126,11 @@ class ScheduledCharge(object):
         finish = start + self.duration
         return finish >= MINUTES_IN_DAY
 
+    def spans_midnight_in(self, tzoffset):
+        start = (_minuteize(self.start_time) + tzoffset) % MINUTES_IN_DAY
+        finish = start + self.duration
+        return finish >= MINUTES_IN_DAY
+
     @property
     def finish_time_minutes(self):
         start = _minuteize(self.start_time)
