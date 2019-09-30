@@ -2,6 +2,9 @@ from .common import add_history_args, add_vehicle_args, format_duration_minutes,
 from datetime import datetime
 from tabulate import tabulate
 
+import dateutil.parser
+import dateutil.tz
+
 
 help_text = 'Show charge history for your vehicle.'
 
