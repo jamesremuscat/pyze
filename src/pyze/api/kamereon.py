@@ -48,13 +48,34 @@ class Kamereon(CachingAPIObject):
     def set_api_key(self, api_key):
         self._credentials.store('kamereon-api-key', api_key, None)
 
-    @requires_credentials('gigya', 'gigya-person-id', 'kamereon-api-key')
     def get_account_id(self):
         if 'KAMEREON_ACCOUNT_ID' in os.environ:
-            self._credentials['kamereon-account'] = (os.environ['KAMEREON_ACCOUNT_ID'], None)
+            self.set_account_id(os.environ['KAMEREON_ACCOUNT_ID'])
         if 'kamereon-account' in self._credentials:
             return self._credentials['kamereon-account']
 
+        accounts = self.get_accounts()
+
+        if len(accounts) == 0:
+            raise AccountException('No Kamereon accounts found!')
+        if len(accounts) > 1:
+            print("WARNING: Multiple Kamereon accounts found:")
+            for acc in accounts:
+                print('- {}'.format(acc['accountId']))
+            print('Using the first of these. If that\'s not correct (perhaps you can\'t see your vehicle)')
+            print('or to silence this message, set the KAMEREON_ACCOUNT_ID environment variable to the')
+            print('account you want to use i.e.')
+            print('    KAMEREON_ACCOUNT_ID=abcdef123456789 pyze ...')
+            print('API users may instead call Kamereon#set_account_id().')
+            print('This setting will persist until you next log in.')
+
+        account = accounts[0]
+        self._clear_all_caches()
+        self._credentials['kamereon-account'] = (account['accountId'], None)
+        return account['accountId']
+
+    @requires_credentials('gigya', 'gigya-person-id', 'kamereon-api-key')
+    def get_accounts(self):
         response = self._session.get(
             '{}/commerce/v1/persons/{}?country={}'.format(
                 self._root_url,
@@ -70,23 +91,10 @@ class Kamereon(CachingAPIObject):
         response.raise_for_status()
         response_body = response.json()
 
-        accounts = response_body.get('accounts', [])
-        if len(accounts) == 0:
-            raise AccountException('No Kamereon accounts found!')
-        if len(accounts) > 1:
-            print("WARNING: Multiple Kamereon accounts found:")
-            for acc in accounts:
-                print('- {}'.format(acc['accountId']))
-            print('Using the first of these. If that\'s not correct (perhaps you can\'t see your vehicle)')
-            print('or to silence this message, set the KAMEREON_ACCOUNT_ID environment variable to the')
-            print('account you want to use i.e.')
-            print('    KAMEREON_ACCOUNT_ID=abcdef123456789 pyze ...')
-            print('This setting will persist until you next log in.')
+        return response_body.get('accounts', [])
 
-        account = accounts[0]
-        self._clear_all_caches()
-        self._credentials['kamereon-account'] = (account['accountId'], None)
-        return account['accountId']
+    def set_account_id(self, account_id):
+        self._credentials['kamereon-account'] = (account_id, None)
 
     @requires_credentials('gigya', 'gigya-person-id', 'kamereon-api-key')
     def get_token(self):
