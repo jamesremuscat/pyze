@@ -18,6 +18,7 @@ COMMAND_MODULES = [
     'charge-stats',
     'login',
     'schedule',
+    'set-account',
     'status',
     'vehicles'
 ]

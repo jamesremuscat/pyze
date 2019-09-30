@@ -1,4 +1,4 @@
-from pyze.api import Gigya
+from pyze.api import Gigya, Kamereon
 
 import getpass
 
@@ -13,6 +13,12 @@ def run(args):
     g = Gigya()
     if g.login(email, password):
         g.account_info()
+
+        k = Kamereon(gigya=g)
+        accounts = k.get_accounts()
+        if len(accounts) > 1:
+            Kamereon.print_multiple_account_warning(accounts)
+
         print('Logged in successfully.')
     else:
         print('Failed to log in!')

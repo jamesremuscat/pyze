@@ -45,6 +45,18 @@ class Kamereon(CachingAPIObject):
         if api_key:
             self.set_api_key(api_key)
 
+    @staticmethod
+    def print_multiple_account_warning(accounts):
+        print("WARNING: Multiple Kamereon accounts found:")
+        for acc in accounts:
+            print('- {}'.format(acc['accountId']))
+        print('Using the first of these. If that\'s not correct (perhaps you can\'t see your vehicle)')
+        print('or to silence this message, run `pyze set-account` or set the KAMEREON_ACCOUNT_ID')
+        print('environment variable to the account you want to use i.e.')
+        print('    KAMEREON_ACCOUNT_ID=abcdef123456789 pyze ...')
+        print('API users may instead call Kamereon#set_account_id().')
+        print('This setting will persist until you next log in.')
+
     def set_api_key(self, api_key):
         self._credentials.store('kamereon-api-key', api_key, None)
 
@@ -59,15 +71,7 @@ class Kamereon(CachingAPIObject):
         if len(accounts) == 0:
             raise AccountException('No Kamereon accounts found!')
         if len(accounts) > 1:
-            print("WARNING: Multiple Kamereon accounts found:")
-            for acc in accounts:
-                print('- {}'.format(acc['accountId']))
-            print('Using the first of these. If that\'s not correct (perhaps you can\'t see your vehicle)')
-            print('or to silence this message, set the KAMEREON_ACCOUNT_ID environment variable to the')
-            print('account you want to use i.e.')
-            print('    KAMEREON_ACCOUNT_ID=abcdef123456789 pyze ...')
-            print('API users may instead call Kamereon#set_account_id().')
-            print('This setting will persist until you next log in.')
+            Kamereon.print_multiple_account_warning(accounts)
 
         account = accounts[0]
         self._clear_all_caches()
