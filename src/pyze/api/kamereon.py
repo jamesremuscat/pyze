@@ -1,4 +1,4 @@
-from .credentials import CredentialStore, requires_credentials
+from .credentials import CredentialStore, requires_credentials, TOKEN_STORE
 from .gigya import Gigya
 from .schedule import ChargeSchedule, ChargeMode
 from collections import namedtuple
@@ -50,6 +50,8 @@ class Kamereon(CachingAPIObject):
 
     @requires_credentials('gigya', 'gigya-person-id', 'kamereon-api-key')
     def get_account_id(self):
+        if 'KAMEREON_ACCOUNT_ID' in os.environ:
+            self._credentials['kamereon-account'] = (os.environ['KAMEREON_ACCOUNT_ID'], None)
         if 'kamereon-account' in self._credentials:
             return self._credentials['kamereon-account']
 
@@ -72,7 +74,14 @@ class Kamereon(CachingAPIObject):
         if len(accounts) == 0:
             raise AccountException('No Kamereon accounts found!')
         if len(accounts) > 1:
-            print("WARNING: Multiple Kamereon accounts found. Using the first.")
+            print("WARNING: Multiple Kamereon accounts found:")
+            for acc in accounts:
+                print('- {}'.format(acc['accountId']))
+            print('Using the first of these. If that\'s not correct (perhaps you can\'t see your vehicle)')
+            print('or to silence this message, set the KAMEREON_ACCOUNT_ID environment variable to the')
+            print('account you want to use i.e.')
+            print('    KAMEREON_ACCOUNT_ID=abcdef123456789 pyze ...')
+            print('This setting will persist until you next log in.')
 
         account = accounts[0]
         self._clear_all_caches()
