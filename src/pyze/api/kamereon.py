@@ -126,8 +126,12 @@ class Kamereon(CachingAPIObject):
             self._credentials['kamereon'] = (token, decoded['exp'])
             self._clear_all_caches()
             return token
-
-        return False
+        else:
+            raise AccountException(
+                'Unable to obtain a Kamereon access token! Response included keys {}'.format(
+                    ', '.join(response_body.keys())
+                )
+            )
 
     @lru_cache(maxsize=1)
     @requires_credentials('kamereon-api-key')
