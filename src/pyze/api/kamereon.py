@@ -7,12 +7,14 @@ from functools import lru_cache
 import datetime
 import dateutil.tz
 import jwt
+import logging
 import os
 import requests
 import simplejson
 
 
 DEFAULT_ROOT_URL = 'https://api-wired-prod-1-euw1.wrd-aws.com'
+_log = logging.getLogger('pyze.api.kamereon')
 
 
 class AccountException(Exception):
@@ -94,6 +96,7 @@ class Kamereon(CachingAPIObject):
 
         response.raise_for_status()
         response_body = response.json()
+        _log.debug('Received Kamereon accounts response: {}'.format(response_body))
 
         return response_body.get('accounts', [])
 
@@ -119,6 +122,7 @@ class Kamereon(CachingAPIObject):
 
         response.raise_for_status()
         response_body = response.json()
+        _log.debug('Received Kamereon token response: {}'.format(response_body))
 
         token = response_body.get('accessToken')
         if token:
@@ -126,8 +130,12 @@ class Kamereon(CachingAPIObject):
             self._credentials['kamereon'] = (token, decoded['exp'])
             self._clear_all_caches()
             return token
-
-        return False
+        else:
+            raise AccountException(
+                'Unable to obtain a Kamereon access token! Response included keys {}'.format(
+                    ', '.join(response_body.keys())
+                )
+            )
 
     @lru_cache(maxsize=1)
     @requires_credentials('kamereon-api-key')
@@ -147,6 +155,7 @@ class Kamereon(CachingAPIObject):
 
         response.raise_for_status()
         response_body = response.json()
+        _log.debug('Received Kamereon vehicles response: {}'.format(response_body))
 
         return response_body
 
@@ -182,9 +191,12 @@ class Vehicle(object):
         )
 
         response.raise_for_status()
-        return response.json()['data']['attributes']
+        json = response.json()
+        _log.debug('Received Kamereon vehicle response: {}'.format(json))
+        return json['data']['attributes']
 
     def _post(self, endpoint, data):
+        _log.debug('POSTing with data: {}'.format(data))
         response = self._request(
             'POST',
             '{}/commerce/v1/accounts/kmr/remote-services/car-adapter/v1/cars/{}/{}'.format(
@@ -198,7 +210,9 @@ class Vehicle(object):
         )
 
         response.raise_for_status()
-        return response.json()
+        json = response.json()
+        _log.debug('Received Kamereon vehicle response: {}'.format(json))
+        return json
 
     def battery_status(self):
         return self._get('battery-status')
