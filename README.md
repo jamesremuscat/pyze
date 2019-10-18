@@ -4,9 +4,25 @@
 
 ```bash
 python3 setup.py install
+```
 
-export GIGYA_API_KEY=XXXXXXXX
-export KAMEREON_API_KEY=YYYYYYYY
+```
+curl https://renault-wrd-prod-1-euw1-myrapp-one.s3-eu-west-1.amazonaws.com/configuration/android/config_en_GB.json |grep Prod -A2
+```
+en_GB for English, fr_FR for French, etc
+
+```
+"wiredProd": {
+			"target": "https://api-wired-prod-1-euw1.wrd-aws.com",
+			"apikey": "oF09WnKqvBDcr....."
+"gigyaProd": {
+			"target": "https://accounts.eu1.gigya.com",
+			"apikey": "3_e8d4g4SE_Fo8ahyH......................................."
+```
+
+```
+export GIGYA_API_KEY=oF09WnKqvBDcr.....
+export KAMEREON_API_KEY=3_e8d4g4SE_Fo8ahyH.......................................
 
 pyze login  # You should only need to do this once
 pyze status
