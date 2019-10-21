@@ -90,6 +90,6 @@ def _format_charge_history(ch):
         chargeStartInstantaneousPower,
         chargeBatteryLevelRecovered,
         ch.get('chargeStartBatteryLevel'),
-        ch['chargePower'],
+        ch.get('chargePower'),
         ch['chargeEndStatus']
     ]
