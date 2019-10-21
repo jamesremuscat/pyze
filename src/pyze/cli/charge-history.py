@@ -40,6 +40,8 @@ def run(parsed_args):
                 'Duration',
                 'Power (kW)',
                 'Charge gained (%)',
+                'Started at (%)',
+                'Power level',
                 'Status'
             ]
         )
@@ -87,5 +89,7 @@ def _format_charge_history(ch):
         chargeDuration,
         chargeStartInstantaneousPower,
         chargeBatteryLevelRecovered,
+        ch['chargeStartBatteryLevel'],
+        ch['chargePower'],
         ch['chargeEndStatus']
     ]
