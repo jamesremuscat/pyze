@@ -59,12 +59,19 @@ def _format_charge_history(ch):
     ).astimezone(
         dateutil.tz.tzlocal()
     )
+    
+    # chargeStartInstantaneousPower seems to be missing for some charging sessions
+    
+    if 'chargeStartInstantaneousPower' in ch:
+        chargeStartInstantaneousPower = '{:.2f}'.format(ch['chargeStartInstantaneousPower'] / 1000)
+    else:
+        chargeStartInstantaneousPower = ''
 
     return [
         start_date.strftime(DATE_FORMAT),
         end_date.strftime(DATE_FORMAT),
         format_duration_minutes(ch['chargeDuration']),
-        '{:.2f}'.format(ch['chargeStartInstantaneousPower'] / 1000),
+        chargeStartInstantaneousPower,
         ch['chargeBatteryLevelRecovered'],
         ch['chargeEndStatus']
     ]
