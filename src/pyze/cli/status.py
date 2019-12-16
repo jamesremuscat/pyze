@@ -61,7 +61,7 @@ def run(parsed_args):
         ['Charge rate', "{:.2f}kW".format(status['instantaneousPower'] / 1000)] if 'instantaneousPower' in status else None,
         ['Time remaining', format_duration_minutes(status['timeRequiredToFullSlow'])[:-3]] if 'timeRequiredToFullSlow' in status else None,
         ['Charge mode', charge_mode.value if hasattr(charge_mode, 'value') else charge_mode],
-        ['AC state', hvac['hvacStatus']],
+        ['AC state', hvac['hvacStatus'] if 'hvacStatus' in hvac else None],
         ['AC start at', hvac_start] if hvac_start else None,
         ['External temperature', "{}°C".format(hvac['externalTemperature'])],
         ['Total mileage', mileage_text],
