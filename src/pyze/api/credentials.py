@@ -7,6 +7,11 @@ import time
 
 TOKEN_STORE = os.environ.get('PYZE_TOKEN_STORE', os.path.expanduser('~/.credentials/pyze.json'))
 
+PERMANENT_KEYS = [
+    'gigya-api-key',
+    'kamereon-api-key'
+]
+
 
 class MissingCredentialException(Exception):
     pass
@@ -83,8 +88,9 @@ class CredentialStore(object):
                 return False
 
         def clear(self):
-            self._store = {}
-            self._add_api_keys_from_env()
+            for k in list(self._store.keys()):
+                if k not in PERMANENT_KEYS:
+                    del self._store[k]
             self._write()
 
         def _add_api_keys_from_env(self):

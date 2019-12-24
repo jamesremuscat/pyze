@@ -2,6 +2,9 @@ from .common import add_history_args, add_vehicle_args, format_duration_minutes,
 from datetime import datetime
 from tabulate import tabulate
 
+import dateutil.parser
+import dateutil.tz
+
 
 help_text = 'Show charge history for your vehicle.'
 
@@ -36,7 +39,9 @@ def run(parsed_args):
                 'Charge end',
                 'Duration',
                 'Power (kW)',
+                'Started at (%)',
                 'Charge gained (%)',
+                'Power level',
                 'Status'
             ]
         )
@@ -51,17 +56,40 @@ def _format_charge_history(ch):
         dateutil.tz.tzlocal()
     )
 
-    end_date = dateutil.parser.parse(
-        ch['chargeEndDate']
-    ).astimezone(
-        dateutil.tz.tzlocal()
-    )
+    if 'chargeEndDate' in ch:
+        end_date = dateutil.parser.parse(
+            ch['chargeEndDate']
+        ).astimezone(
+            dateutil.tz.tzlocal()
+        )
+        end_date = end_date.strftime(DATE_FORMAT)
+    else:
+        end_date = ''
+
+    if 'chargeDuration' in ch:
+        chargeDuration = format_duration_minutes(ch['chargeDuration'])
+    else:
+        chargeDuration = ''
+    
+    # chargeStartInstantaneousPower seems to be missing for some charging sessions
+    
+    if 'chargeStartInstantaneousPower' in ch:
+        chargeStartInstantaneousPower = '{:.2f}'.format(ch['chargeStartInstantaneousPower'] / 1000)
+    else:
+        chargeStartInstantaneousPower = ''
+        
+    if 'chargeBatteryLevelRecovered' in ch:
+        chargeBatteryLevelRecovered = ch['chargeBatteryLevelRecovered']
+    else:
+        chargeBatteryLevelRecovered = ''
 
     return [
         start_date.strftime(DATE_FORMAT),
-        end_date.strftime(DATE_FORMAT),
-        format_duration_minutes(ch['chargeDuration']),
-        '{:.2f}'.format(ch['chargeStartInstantaneousPower'] / 1000),
-        ch['chargeBatteryLevelRecovered'],
+        end_date,
+        chargeDuration,
+        chargeStartInstantaneousPower,
+        ch.get('chargeStartBatteryLevel'),
+        chargeBatteryLevelRecovered,
+        ch.get('chargePower'),
         ch['chargeEndStatus']
     ]

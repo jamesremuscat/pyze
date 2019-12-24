@@ -1,4 +1,4 @@
-from .credentials import CredentialStore, requires_credentials
+from .credentials import CredentialStore, requires_credentials, TOKEN_STORE
 from .gigya import Gigya
 from .schedule import ChargeSchedule, ChargeMode
 from collections import namedtuple
@@ -7,12 +7,14 @@ from functools import lru_cache
 import datetime
 import dateutil.tz
 import jwt
+import logging
 import os
 import requests
 import simplejson
 
 
 DEFAULT_ROOT_URL = 'https://api-wired-prod-1-euw1.wrd-aws.com'
+_log = logging.getLogger('pyze.api.kamereon')
 
 
 class AccountException(Exception):
@@ -45,14 +47,41 @@ class Kamereon(CachingAPIObject):
         if api_key:
             self.set_api_key(api_key)
 
+    @staticmethod
+    def print_multiple_account_warning(accounts):
+        print("WARNING: Multiple Kamereon accounts found:")
+        for acc in accounts:
+            print('- {}'.format(acc['accountId']))
+        print('Using the first of these. If that\'s not correct (perhaps you can\'t see your vehicle)')
+        print('or to silence this message, run `pyze set-account` or set the KAMEREON_ACCOUNT_ID')
+        print('environment variable to the account you want to use i.e.')
+        print('    KAMEREON_ACCOUNT_ID=abcdef123456789 pyze ...')
+        print('API users may instead call Kamereon#set_account_id().')
+        print('This setting will persist until you next log in.')
+
     def set_api_key(self, api_key):
         self._credentials.store('kamereon-api-key', api_key, None)
 
-    @requires_credentials('gigya', 'gigya-person-id', 'kamereon-api-key')
     def get_account_id(self):
+        if 'KAMEREON_ACCOUNT_ID' in os.environ:
+            self.set_account_id(os.environ['KAMEREON_ACCOUNT_ID'])
         if 'kamereon-account' in self._credentials:
             return self._credentials['kamereon-account']
 
+        accounts = self.get_accounts()
+
+        if len(accounts) == 0:
+            raise AccountException('No Kamereon accounts found!')
+        if len(accounts) > 1:
+            Kamereon.print_multiple_account_warning(accounts)
+
+        account = accounts[0]
+        self._clear_all_caches()
+        self._credentials['kamereon-account'] = (account['accountId'], None)
+        return account['accountId']
+
+    @requires_credentials('gigya', 'gigya-person-id', 'kamereon-api-key')
+    def get_accounts(self):
         response = self._session.get(
             '{}/commerce/v1/persons/{}?country={}'.format(
                 self._root_url,
@@ -67,17 +96,12 @@ class Kamereon(CachingAPIObject):
 
         response.raise_for_status()
         response_body = response.json()
+        _log.debug('Received Kamereon accounts response: {}'.format(response_body))
 
-        accounts = response_body.get('accounts', [])
-        if len(accounts) == 0:
-            raise AccountException('No Kamereon accounts found!')
-        if len(accounts) > 1:
-            print("WARNING: Multiple Kamereon accounts found. Using the first.")
+        return response_body.get('accounts', [])
 
-        account = accounts[0]
-        self._clear_all_caches()
-        self._credentials['kamereon-account'] = (account['accountId'], None)
-        return account['accountId']
+    def set_account_id(self, account_id):
+        self._credentials['kamereon-account'] = (account_id, None)
 
     @requires_credentials('gigya', 'gigya-person-id', 'kamereon-api-key')
     def get_token(self):
@@ -98,6 +122,7 @@ class Kamereon(CachingAPIObject):
 
         response.raise_for_status()
         response_body = response.json()
+        _log.debug('Received Kamereon token response: {}'.format(response_body))
 
         token = response_body.get('accessToken')
         if token:
@@ -105,8 +130,12 @@ class Kamereon(CachingAPIObject):
             self._credentials['kamereon'] = (token, decoded['exp'])
             self._clear_all_caches()
             return token
-
-        return False
+        else:
+            raise AccountException(
+                'Unable to obtain a Kamereon access token! Response included keys {}'.format(
+                    ', '.join(response_body.keys())
+                )
+            )
 
     @lru_cache(maxsize=1)
     @requires_credentials('kamereon-api-key')
@@ -126,6 +155,7 @@ class Kamereon(CachingAPIObject):
 
         response.raise_for_status()
         response_body = response.json()
+        _log.debug('Received Kamereon vehicles response: {}'.format(response_body))
 
         return response_body
 
@@ -161,9 +191,12 @@ class Vehicle(object):
         )
 
         response.raise_for_status()
-        return response.json()['data']['attributes']
+        json = response.json()
+        _log.debug('Received Kamereon vehicle response: {}'.format(json))
+        return json['data']['attributes']
 
     def _post(self, endpoint, data):
+        _log.debug('POSTing with data: {}'.format(data))
         response = self._request(
             'POST',
             '{}/commerce/v1/accounts/kmr/remote-services/car-adapter/v1/cars/{}/{}'.format(
@@ -177,7 +210,9 @@ class Vehicle(object):
         )
 
         response.raise_for_status()
-        return response.json()
+        json = response.json()
+        _log.debug('Received Kamereon vehicle response: {}'.format(json))
+        return json
 
     def battery_status(self):
         return self._get('battery-status')

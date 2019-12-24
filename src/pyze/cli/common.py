@@ -37,6 +37,8 @@ def get_vehicle(parsed_args):
 
         vin = possible_vehicles[0]['vin']
 
+    elif len(vehicles) == 0:
+        raise RuntimeError('No vehicles found for this account!')
     else:
         vin = vehicles[0]['vin']
 
