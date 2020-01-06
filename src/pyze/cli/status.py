@@ -64,7 +64,7 @@ def run(parsed_args):
         ['AC state', hvac['hvacStatus'] if 'hvacStatus' in hvac else None],
         ['AC start at', hvac_start] if hvac_start else None,
         ['External temperature', "{}°C".format(hvac['externalTemperature'])],
-        ['Battery temperature', "{}°C".format(status['batteryTemperature'])] if status['batteryTemperature'] else None,
+        ['Battery temperature', "{}°C".format(status['batteryTemperature'])] if 'batteryTemperature' in status else None,
         ['Total mileage', mileage_text],
         ['Updated at', update_time]
     ]
