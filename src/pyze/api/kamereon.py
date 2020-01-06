@@ -180,11 +180,12 @@ class Vehicle(object):
             **kwargs
         )
 
-    def _get(self, endpoint):
+    def _get(self, endpoint, version=1):
         response = self._request(
             'GET',
-            '{}/commerce/v1/accounts/kmr/remote-services/car-adapter/v1/cars/{}/{}'.format(
+            '{}/commerce/v1/accounts/kmr/remote-services/car-adapter/v{}/cars/{}/{}'.format(
                 self._root_url,
+                version,
                 self._vin,
                 endpoint
             )
@@ -195,12 +196,13 @@ class Vehicle(object):
         _log.debug('Received Kamereon vehicle response: {}'.format(json))
         return json['data']['attributes']
 
-    def _post(self, endpoint, data):
+    def _post(self, endpoint, data, version=1):
         _log.debug('POSTing with data: {}'.format(data))
         response = self._request(
             'POST',
-            '{}/commerce/v1/accounts/kmr/remote-services/car-adapter/v1/cars/{}/{}'.format(
+            '{}/commerce/v1/accounts/kmr/remote-services/car-adapter/v{}/cars/{}/{}'.format(
                 self._root_url,
+                version,
                 self._vin,
                 endpoint
             ),
