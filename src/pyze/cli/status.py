@@ -18,12 +18,15 @@ def configure_parser(parser):
 
 
 def wrap_unavailable(obj, method):
+    wrapper = collections.defaultdict(lambda: 'Unavailable')
+
     try:
-        return getattr(obj, method)()
+        original_dict = getattr(obj, method)()
+        wrapper.update(original_dict)
     except requests.RequestException:
-        dummy = collections.defaultdict(lambda: 'Unavailable')
-        dummy['_unavailable'] = True
-        return dummy
+        wrapper['_unavailable'] = True
+
+    return wrapper
 
 
 def run(parsed_args):
@@ -36,10 +39,13 @@ def run(parsed_args):
         range_text = status['rangeHvacOff']
     else:
         plugged_in, charging = status['plugStatus'] > 0, status['chargeStatus'] > 0
-        if parsed_args.km:
-            range_text = '{:.1f} km'.format(status['rangeHvacOff'])
+        if 'rangeHvacOff' in status:
+            if parsed_args.km:
+                range_text = '{:.1f} km'.format(status['rangeHvacOff'])
+            else:
+                range_text = '{:.1f} miles'.format(status['rangeHvacOff'] / KM_PER_MILE)
         else:
-            range_text = '{:.1f} miles'.format(status['rangeHvacOff'] / KM_PER_MILE)
+            range_text = status['rangeHvacOff']  # Fall back to default value
 
     try:
         charge_mode = v.charge_mode()
