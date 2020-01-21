@@ -38,7 +38,7 @@ def run(parsed_args):
         plugged_in, charging = False, False
         range_text = status['rangeHvacOff']
     else:
-        plugged_in, charging = status['plugStatus'] > 0, status['chargeStatus'] > 0
+        plugged_in, charging = status.get('plugStatus', 0) > 0, status.get('chargeStatus', 0) > 0
         if 'rangeHvacOff' in status:
             if parsed_args.km:
                 range_text = '{:.1f} km'.format(status['rangeHvacOff'])
