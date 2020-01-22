@@ -70,14 +70,14 @@ def _format_charge_history(ch):
         chargeDuration = format_duration_minutes(ch['chargeDuration'])
     else:
         chargeDuration = ''
-    
+
     # chargeStartInstantaneousPower seems to be missing for some charging sessions
-    
+
     if 'chargeStartInstantaneousPower' in ch:
         chargeStartInstantaneousPower = '{:.2f}'.format(ch['chargeStartInstantaneousPower'] / 1000)
     else:
         chargeStartInstantaneousPower = ''
-        
+
     if 'chargeBatteryLevelRecovered' in ch:
         chargeBatteryLevelRecovered = ch['chargeBatteryLevelRecovered']
     else:

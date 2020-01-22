@@ -85,9 +85,9 @@ def _set_debug():
     pyze_log.setLevel(logging.DEBUG)
 
     pyze_log.warn(
-        'Debug output enabled. Logs may contain personally identifiable information ' +
-        'and account credentials! Be sure to sanitise these logs before sending them ' +
-        'to a third party or posting them online.'
+        'Debug output enabled. Logs may contain personally identifiable '
+        'information and account credentials! Be sure to sanitise these logs '
+        'before sending them to a third party or posting them online.'
     )
 
 

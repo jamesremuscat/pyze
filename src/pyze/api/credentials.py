@@ -37,7 +37,7 @@ def init_store():
 
             for key, value in stored.items():
                 new_store[key] = Credential(value['token'], value['expiry'])
-    except:
+    except Exception:
         pass
 
     return new_store
