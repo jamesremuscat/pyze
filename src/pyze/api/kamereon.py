@@ -2,10 +2,12 @@ from .credentials import CredentialStore, requires_credentials, TOKEN_STORE
 from .gigya import Gigya
 from .schedule import ChargeSchedule, ChargeMode
 from collections import namedtuple
+from enum import Enum
 from functools import lru_cache
 
 import datetime
 import dateutil.tz
+import itertools
 import jwt
 import logging
 import os
@@ -195,9 +197,9 @@ class Vehicle(object):
             )
         )
 
+        _log.debug('Received Kamereon vehicle response: {}'.format(response.text))
         response.raise_for_status()
         json = response.json()
-        _log.debug('Received Kamereon vehicle response: {}'.format(json))
         return json['data']['attributes']
 
     def _post(self, endpoint, data, version=1):
@@ -216,13 +218,13 @@ class Vehicle(object):
             }
         )
 
+        _log.debug('Received Kamereon vehicle response: {}'.format(response.text))
         response.raise_for_status()
         json = response.json()
-        _log.debug('Received Kamereon vehicle response: {}'.format(json))
         return json
 
     def battery_status(self):
-        return self._get('battery-status')
+        return self._get('battery-status', 2)
 
     def hvac_status(self):
         return self._get('hvac-status')
@@ -380,6 +382,28 @@ class Vehicle(object):
             'actions/charge-mode',
             data
         )
+
+# Serious metaprogramming follows:
+# https://www.notinventedhere.org/articles/python/how-to-use-strings-as-name-aliases-in-python-enums.html
+
+
+_CHARGE_STATES = {
+    0.0: ['Not charging', 'NOT_IN_CHARGE'],
+    0.1: ['Waiting for planned charge', 'WAITING_FOR_PLANNED_CHARGE'],
+    0.2: ['Charge ended', 'CHARGE_ENDED'],
+    0.3: ['Waiting for current charge', 'WAITING_FOR_CURRENT_CHARGE'],
+    0.4: ['Energy flap opened', 'ENERGY_FLAP_OPENED'],
+    1.0: ['Charging', 'CHARGE_IN_PROGRESS'],
+    -1.0: ['Not plugged in', 'CHARGE_ERROR'],
+    -1.1: ['Not available', 'NOT_AVAILABLE']
+}
+
+ChargeState = Enum(
+    value='ChargeState',
+    names=itertools.chain.from_iterable(
+        itertools.product(v, [k]) for k, v in _CHARGE_STATES.items()
+    )
+)
 
 
 PERIOD_FORMATS = {
