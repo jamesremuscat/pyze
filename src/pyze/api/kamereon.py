@@ -177,14 +177,18 @@ class Vehicle(object):
                 'x-gigya-id_token': self._kamereon._gigya.get_jwt_token(),
                 'x-kamereon-authorization': 'Bearer {}'.format(self._kamereon.get_token())
             },
+            params={
+                'country': self._kamereon._country
+            },
             **kwargs
         )
 
     def _get(self, endpoint, version=1):
         response = self._request(
             'GET',
-            '{}/commerce/v1/accounts/kmr/remote-services/car-adapter/v{}/cars/{}/{}'.format(
+            '{}/commerce/v1/accounts/{}/kamereon/kca/car-adapter/v{}/cars/{}/{}'.format(
                 self._root_url,
+                self._kamereon.get_account_id(),
                 version,
                 self._vin,
                 endpoint
@@ -200,8 +204,9 @@ class Vehicle(object):
         _log.debug('POSTing with data: {}'.format(data))
         response = self._request(
             'POST',
-            '{}/commerce/v1/accounts/kmr/remote-services/car-adapter/v{}/cars/{}/{}'.format(
+            '{}/commerce/v1/accounts/{}/kamereon/kca/car-adapter/v{}/cars/{}/{}'.format(
                 self._root_url,
+                self._kamereon.get_account_id(),
                 version,
                 self._vin,
                 endpoint
