@@ -198,6 +198,7 @@ class Vehicle(object):
         )
 
         _log.debug('Received Kamereon vehicle response: {}'.format(response.text))
+        _log.debug('Response headers: {}'.format(response.headers))
         response.raise_for_status()
         json = response.json()
         return json['data']['attributes']
@@ -219,6 +220,7 @@ class Vehicle(object):
         )
 
         _log.debug('Received Kamereon vehicle response: {}'.format(response.text))
+        _log.debug('Response headers: {}'.format(response.headers))
         response.raise_for_status()
         json = response.json()
         return json
