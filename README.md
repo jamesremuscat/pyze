@@ -64,6 +64,12 @@ for a walkthrough of the required steps to authenticate and use the API.
 
 ## Contributing
 
+### Issues
+
+Check to see that the problem you're experiencing isn't listed on the 
+[known issues with the Renault API](https://github.com/jamesremuscat/pyze/wiki/Known-issues-with-the-Renault-API) 
+page on the wiki. Things listed on that page are not within our power to fix!
+
 ### Feature requests
 
 You're welcome to raise an issue with a feature request, but I can't guarantee
@@ -86,7 +92,8 @@ Apologies if I'm slow to review and merge - I'll get there eventually!
 
 We've already experienced some very different behaviour across Zoe models,
 and in some cases for the same Zoe model - some endpoints return errors, some
-have missing or additional information.
+have missing or additional information. These discrepancies are noted
+[on the wiki](https://github.com/jamesremuscat/pyze/wiki/Known-issues-with-the-Renault-API).
 
 If you discover that your Zoe is missing something, or conversely, if you
 discover something I've not seen, please raise an issue to let me know!
