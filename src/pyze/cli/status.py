@@ -53,7 +53,7 @@ def run(parsed_args):
         charge_mode = 'Unavailable'
 
     mileage = wrap_unavailable(v, 'mileage')
-    if mileage.get('_unavailable', False):
+    if mileage.get('_unavailable', False) or 'totalMileage' not in mileage:
         mileage_text = mileage['totalMileage']
     else:
         if parsed_args.km:
