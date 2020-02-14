@@ -50,19 +50,21 @@ def run(parsed_args):
 
 def _format_charge_history(ch):
 
-    start_date = dateutil.parser.parse(
-        ch['chargeStartDate']
-    ).astimezone(
-        dateutil.tz.tzlocal()
-    )
+    if 'chargeStartDate' in ch:
+        start_date = dateutil.parser.parse(
+            ch['chargeStartDate']
+        ).astimezone(
+            dateutil.tz.tzlocal()
+        ).strftime(DATE_FORMAT)
+    else:
+        start_date = ''
 
     if 'chargeEndDate' in ch:
         end_date = dateutil.parser.parse(
             ch['chargeEndDate']
         ).astimezone(
             dateutil.tz.tzlocal()
-        )
-        end_date = end_date.strftime(DATE_FORMAT)
+        ).strftime(DATE_FORMAT)
     else:
         end_date = ''
 
@@ -84,12 +86,12 @@ def _format_charge_history(ch):
         chargeBatteryLevelRecovered = ''
 
     return [
-        start_date.strftime(DATE_FORMAT),
+        start_date,
         end_date,
         chargeDuration,
         chargeStartInstantaneousPower,
         ch.get('chargeStartBatteryLevel'),
         chargeBatteryLevelRecovered,
         ch.get('chargePower'),
-        ch['chargeEndStatus']
+        ch.get('chargeEndStatus')
     ]
