@@ -385,6 +385,17 @@ class Vehicle(object):
             data
         )
 
+    def charge_start(self):
+        return self._post(
+            'actions/charging-start',
+            {
+                'type': 'ChargingStart',
+                'attributes': {
+                    'action': 'start'
+                }
+            }
+        )
+
 # Serious metaprogramming follows:
 # https://www.notinventedhere.org/articles/python/how-to-use-strings-as-name-aliases-in-python-enums.html
 
