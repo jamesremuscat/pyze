@@ -23,4 +23,6 @@ jobs:
       run: |
         pip install pycodestyle
         pycodestyle src/
-
+    - name: Run pytest
+      run: |
+        python setup.py pytest

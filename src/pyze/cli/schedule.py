@@ -19,6 +19,12 @@ def configure_parser(parser):
         action='store_true'
     )
 
+    parser.add_argument(
+        '--id',
+        help='Schedule ID',
+        type=int
+    )
+
     subparsers = parser.add_subparsers()
 
     show_parser = subparsers.add_parser("show")
@@ -36,19 +42,30 @@ def configure_parser(parser):
 def run(parsed_args):
     v = get_vehicle(parsed_args)
 
-    schedule = v.charge_schedule()
+    schedules = v.charge_schedules()
 
     if hasattr(parsed_args, 'schedule_func'):
-        parsed_args.schedule_func(schedule, v, parsed_args)
+        parsed_args.schedule_func(schedules, v, parsed_args)
     else:
-        show(schedule, v, parsed_args)
+        show(schedules, v, parsed_args)
 
 
-def show(schedule, _, parsed_args):
-    print_schedule(schedule, parsed_args.utc)
+def show(schedules, _, parsed_args):
+    for id, schedule in schedules.items():
+        print('Schedule ID: {}{}'.format(id, ' [Active]' if schedule.activated else ''))
+        print_schedule(schedule, parsed_args.utc)
+    if parsed_args.utc:
+        print('All times are UTC.')
 
 
-def edit(schedule, vehicle, parsed_args):
+def edit(schedules, vehicle, parsed_args):
+    if parsed_args.id:
+        schd_id = parsed_args.id
+    else:
+        schd_id = 1
+
+    schedule = schedules[schd_id]
+
     for day in DAYS:
         if hasattr(parsed_args, day):
             day_value = getattr(parsed_args, day)
@@ -61,9 +78,9 @@ def edit(schedule, vehicle, parsed_args):
 
                 schedule[day] = ScheduledCharge(start_time, duration)
 
-    print('Setting new schedule:')
+    print('Setting new schedule (ID {}):'.format(schedule.id))
     print_schedule(schedule, parsed_args.utc)
-    vehicle.set_charge_schedule(schedule)
+    vehicle.set_charge_schedules(schedules)
     print('It may take some time before these changes are reflected in your vehicle.')
 
 
@@ -74,13 +91,11 @@ def print_schedule(s, use_utc):
             headers=['Day', 'Start time', 'End time', 'Duration']
         )
     )
-    if use_utc:
-        print('All times are UTC.')
 
 
 def format_schedule(s, use_utc):
     return [
-        [k.title(), *format_scheduled_charge(vs[0], use_utc)] for k, vs in s.items()
+        [k.title(), *format_scheduled_charge(v, use_utc)] for k, v in s.items()
     ]
 
 
@@ -117,8 +132,8 @@ def timezone_offset():
 
 def apply_offset(raw):
     offset_hours, offset_minutes = timezone_offset()
-    raw_hours = int(raw[0:2])
-    raw_minutes = int(raw[2:])
+    raw_hours = int(raw[1:3])
+    raw_minutes = int(raw[4:6])
 
     return "{:02g}{:02g}".format(
         (raw_hours + offset_hours) % 24,
@@ -128,10 +143,10 @@ def apply_offset(raw):
 
 def remove_offset(raw):
     offset_hours, offset_minutes = timezone_offset()
-    raw_hours = int(raw[0:2])
-    raw_minutes = int(raw[2:])
+    raw_hours = int(raw[1:3])
+    raw_minutes = int(raw[4:6])
 
-    return "{:02g}{:02g}".format(
+    return "T{:02g}:{:02g}Z".format(
         raw_hours - offset_hours,
         raw_minutes - offset_minutes
     )
@@ -145,4 +160,9 @@ def parse_day_value(raw):
     if not match:
         raise RuntimeError('Invalid specification for charge schedule: `{}`. Should be of the form HHMM,DURATION'.format(raw))
 
-    return [match.group('start_time'), int(match.group('duration'))]
+    start_time = match.group('start_time')
+    formatted_start_time = 'T{}:{}Z'.format(
+        start_time[:2],
+        start_time[2:]
+    )
+    return [formatted_start_time, int(match.group('duration'))]

@@ -1,6 +1,6 @@
 from .credentials import CredentialStore, requires_credentials, TOKEN_STORE
 from .gigya import Gigya
-from .schedule import ChargeSchedule, ChargeMode
+from .schedule import ChargeSchedules, ChargeMode
 from collections import namedtuple
 from enum import Enum
 from functools import lru_cache
@@ -249,9 +249,9 @@ class Vehicle(object):
     def location(self):
         return self._get('location')
 
-    def charge_schedule(self):
-        return ChargeSchedule(
-            self._get('charge-schedule')
+    def charge_schedules(self):
+        return ChargeSchedules(
+            self._get('charging-settings')
         )
 
     def notification_settings(self):
@@ -354,24 +354,25 @@ class Vehicle(object):
             }
         )
 
-    def set_charge_schedule(self, schedule):
-        if not isinstance(schedule, ChargeSchedule):
-            raise RuntimeError('Expected schedule to be instance of ChargeSchedule, but got {} instead'.format(schedule.__class__))
-        schedule.validate()
+    def set_charge_schedules(self, schedules):
+        if not isinstance(schedules, ChargeSchedules):
+            raise RuntimeError('Expected schedule to be instance of ChargeSchedules, but got {} instead'.format(schedule.__class__))
+        schedules.validate()
 
         data = {
             'type': 'ChargeSchedule',
-            'attributes': schedule
+            'attributes': schedules
         }
 
         return self._post(
             'actions/charge-schedule',
-            simplejson.loads(simplejson.dumps(data, for_json=True))
+            simplejson.loads(simplejson.dumps(data, for_json=True)),
+            version=2
         )
 
     def set_charge_mode(self, charge_mode):
         if not isinstance(charge_mode, ChargeMode):
-            raise RuntimeError('Expceted charge_mode to be instance of ChargeMode, but got {} instead'.format(charge_mode.__class__))
+            raise RuntimeError('Expected charge_mode to be instance of ChargeMode, but got {} instead'.format(charge_mode.__class__))
 
         data = {
             'type': 'ChargeMode',
