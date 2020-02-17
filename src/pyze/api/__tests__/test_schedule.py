@@ -1,4 +1,7 @@
-from pyze.api.schedule import ChargeSchedules, _minuteize, _deminuteize
+from pyze.api.schedule import ChargeSchedules, _minuteize, _deminuteize, \
+    ScheduledCharge, InvalidScheduleException
+
+import pytest
 
 
 def test_parse_schedules():
@@ -62,3 +65,47 @@ def test_deminuteize():
     assert _deminuteize(60) == 'T01:00Z'
     assert _deminuteize(12 * 60) == 'T12:00Z'
     assert _deminuteize((24 * 60) - 1) == 'T23:59Z'
+
+
+class TestScheduledCharge:
+    def test_spans_midnight(self):
+        before_midnight = ScheduledCharge('T23:30Z', 15)
+        assert before_midnight.spans_midnight is False
+
+        at_midnight = ScheduledCharge('T23:45Z', 15)
+        assert at_midnight.spans_midnight is True
+
+        after_midnight = ScheduledCharge('T23:45Z', 30)
+        assert after_midnight.spans_midnight is True
+
+    def test_finish_time(self):
+        at_midnight = ScheduledCharge('T23:45Z', 15)
+        assert at_midnight.finish_time == 'T00:00Z'
+        assert at_midnight.finish_time_minutes == 0
+
+        after_midnight = ScheduledCharge('T23:45Z', 30)
+        assert after_midnight.finish_time == 'T00:15Z'
+        assert after_midnight.finish_time_minutes == 15
+
+        same_day = ScheduledCharge('T12:00Z', 60)
+        assert same_day.finish_time == 'T13:00Z'
+        assert same_day.finish_time_minutes == (13 * 60)
+
+    def test_validation(self):
+        with pytest.raises(InvalidScheduleException, match=r".*not a valid start time.*"):
+            ScheduledCharge('1200', 15).validate()
+        with pytest.raises(InvalidScheduleException, match=r".*not a valid start time.*"):
+            ScheduledCharge(1200, 15).validate()
+        with pytest.raises(InvalidScheduleException, match=r".*not a valid start time.*"):
+            ScheduledCharge('T24:00Z', 15).validate()
+        with pytest.raises(InvalidScheduleException, match=r".*not a valid start time.*"):
+            ScheduledCharge('T12:04Z', 15).validate()
+
+        with pytest.raises(InvalidScheduleException, match=r".*not a valid duration.*"):
+            ScheduledCharge('T12:00Z', 14).validate()
+        with pytest.raises(InvalidScheduleException, match=r".*not a valid duration.*"):
+            ScheduledCharge('T12:00Z', 16).validate()
+        with pytest.raises(InvalidScheduleException, match=r".*not a valid duration.*"):
+            ScheduledCharge('T12:00Z', -1).validate()
+        with pytest.raises(InvalidScheduleException, match=r".*not a valid duration.*"):
+            ScheduledCharge('T12:00Z', '15').validate()
