@@ -396,7 +396,10 @@ _CHARGE_STATES = {
     0.3: ['Waiting for current charge', 'WAITING_FOR_CURRENT_CHARGE'],
     0.4: ['Energy flap opened', 'ENERGY_FLAP_OPENED'],
     1.0: ['Charging', 'CHARGE_IN_PROGRESS'],
-    -1.0: ['Not plugged in', 'CHARGE_ERROR'],
+    # This next is more accurately "not charging" (<= ZE40) or "error" (ZE50).
+    # But I don't want to include 'error' in the output text because people will
+    # think that it's an error in Pyze when their ZE40 isn't plugged in...
+    -1.0: ['Not charging or plugged in', 'CHARGE_ERROR'],
     -1.1: ['Not available', 'NOT_AVAILABLE']
 }
 
@@ -404,6 +407,20 @@ ChargeState = Enum(
     value='ChargeState',
     names=itertools.chain.from_iterable(
         itertools.product(v, [k]) for k, v in _CHARGE_STATES.items()
+    )
+)
+
+_PLUG_STATES = {
+    0: ['Unplugged', 'UNPLUGGED'],
+    1: ['Plugged in', 'PLUGGED'],
+    -1: ['Plug error', 'PLUG_ERROR'],
+    -2147483648: ['Not available', 'NOT_AVAILABLE']
+}
+
+PlugState = Enum(
+    value='PlugState',
+    names=itertools.chain.from_iterable(
+        itertools.product(v, [k]) for k, v in _PLUG_STATES.items()
     )
 )
 

@@ -1,5 +1,5 @@
 from .common import add_vehicle_args, format_duration_minutes, get_vehicle
-from pyze.api import ChargeState
+from pyze.api import ChargeState, PlugState
 from tabulate import tabulate
 
 import collections
@@ -36,11 +36,14 @@ def run(parsed_args):
     status = wrap_unavailable(v, 'battery_status')
     # {'lastUpdateTime': '2019-07-12T00:38:01Z', 'chargePower': 2, 'instantaneousPower': 6600, 'plugStatus': 1, 'chargeStatus': 1, 'batteryLevel': 28, 'rangeHvacOff': 64, 'timeRequiredToFullSlow': 295}
     if status.get('_unavailable', False):
-        plugged_in = False
+        plug_state = PlugState.NOT_AVAILABLE
         charge_state = ChargeState.NOT_AVAILABLE
         range_text = status['rangeHvacOff']
     else:
-        plugged_in = status.get('plugStatus', 0) > 0
+        try:
+            plug_state = PlugState(status.get('plugStatus'))
+        except ValueError:
+            plug_state = PlugState.NOT_AVAILABLE
 
         try:
             charge_state = ChargeState(status.get('chargingStatus'))
@@ -101,7 +104,7 @@ def run(parsed_args):
         ["Battery level", "{}%".format(status['batteryLevel'])],
         ["Available energy", "{}kWh".format(status['batteryAvailableEnergy'])] if status.get('batteryAvailableEnergy', 0) > 0 else None,
         ["Range estimate", range_text],
-        ['Plugged in', 'Yes' if plugged_in else 'No'],
+        ['Plug state', plug_state.name],
         ['Charging state', charge_state.name],
         ['Charge rate', "{:.2f}kW".format(status['chargingInstantaneousPower'] / 1000)] if 'chargingInstantaneousPower' in status else None,
         ['Time remaining', format_duration_minutes(status['chargingRemainingTime'])[:-3]] if 'chargingRemainingTime' in status else None,
