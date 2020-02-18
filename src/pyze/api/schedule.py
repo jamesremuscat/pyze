@@ -4,15 +4,6 @@ import datetime
 import math
 
 
-def _parse_schedule(data):
-    schedule = {}
-
-    for day, charge_times in data.get('calendar', {}).items():
-        schedule[day] = [ScheduledCharge(t['startTime'], t['duration']) for t in charge_times]
-
-    return schedule
-
-
 DAYS = [
     'monday',
     'tuesday',
@@ -23,6 +14,15 @@ DAYS = [
     'sunday'
 ]
 
+
+def _parse_schedule(data):
+    schedule = {}
+    for day in DAYS:
+        schedule[day] = ScheduledCharge(data[day]['startTime'], data[day]['duration'])
+
+    return data.get('id'), data.get('activated', False), schedule
+
+
 MINUTES_IN_DAY = 60 * 24
 
 
@@ -31,24 +31,87 @@ class ChargeMode(Enum):
     schedule_mode = 'Scheduled charge'
 
 
-class ChargeSchedule(object):
-    def __init__(self, data):
-        self._schedule = _parse_schedule(data)
+class ChargeSchedules(object):
+    def __init__(self, raw={}):
+        self._schedules = {}
+
+        for schedule in raw.get('schedules', []):
+            self._schedules[schedule['id']] = ChargeSchedule(schedule)
+
+        self.mode = raw.get('mode', 'scheduled')
+
+    def __getitem__(self, key):
+        return self._schedules[key]
+
+    def __setitem__(self, key, value):
+        if not isinstance(value, ChargeSchedule):
+            raise RuntimeError('Expected ChargeSchedule, got {} instead'.format(value.__class__))
+        self._schedules[key] = value
+
+    def _next_schedule_id(self):
+        return max(list(self._schedules.keys()) + [0]) + 1
+
+    def add(self, schedule):
+        if not isinstance(schedule, ChargeSchedule):
+            raise RuntimeError('Expected ChargeSchedule, got {} instead'.format(schedule.__class__))
+        if not schedule.id:
+            schedule.id = self._next_schedule_id()
+        self._schedules[schedule.id] = schedule
+
+    def new_schedule(self):
+        schedule = ChargeSchedule()
+        schedule.id = self._next_schedule_id()
+        self._schedules[schedule.id] = schedule
+        return schedule
+
+    def items(self):
+        return self._schedules.items()
+
+    def __iter__(self):
+        return self._schedules.items().__iter__()
+
+    def __len__(self):
+        return self._schedules.__len__()
+
+    def for_json(self):
+        return {
+            'schedules': list(map(lambda v: v.for_json(), self._schedules.values()))
+        }
 
     def validate(self):
-        for day, charge_times in self._schedule.items():
-            # Validate each individual schedule entry...
-            for charge_time in charge_times:
-                charge_time.validate()
+        seen_active = False
+        for schedule in self._schedules.values():
+            schedule.validate()
+            if schedule.activated:
+                if seen_active:
+                    raise InvalidScheduleException('Multiple schedules are active')
+                seen_active = True
+        return True
 
-            # ... and the schedule as a whole has no overlaps or gaps
-            if len(charge_times) != 1:
-                raise InvalidScheduleException('{} charges scheduled for {} (must be exactly 1)'.format(len(charge_times), day))
 
-            if charge_times[0].spans_midnight:
+INITIAL_SCHEDULE = {
+    'activated': False
+}
+
+for day in DAYS:
+    INITIAL_SCHEDULE[day] = {
+        'startTime': 'T12:00Z',
+        'duration': 15
+    }
+
+
+class ChargeSchedule(object):
+    def __init__(self, data=INITIAL_SCHEDULE):
+        self.id, self.activated, self._schedule = _parse_schedule(data)
+
+    def validate(self):
+        for day, charge_time in self._schedule.items():
+            charge_time.validate()
+
+            if charge_time.spans_midnight:
                 next_day = DAYS[(DAYS.index(day) + 1) % len(DAYS)]
-                tomorrow_charge = self._schedule[next_day][0]
-                if charge_times[0].overlaps(tomorrow_charge):
+                tomorrow_charge = self._schedule[next_day]
+                if charge_time.overlaps(tomorrow_charge):
                     raise InvalidScheduleException('Charge for {} overlaps charge for {}'.format(day, next_day))
         return True
 
@@ -64,7 +127,7 @@ class ChargeSchedule(object):
 
         # Note: we must allow the schedule to be invalidated here as it might require subsequent assignments
         # to make it valid (or else risk it being essentially immutable without gymnastics).
-        self._schedule[key] = [value]
+        self._schedule[key] = value
 
     def items(self):
         return self._schedule.items()
@@ -76,11 +139,13 @@ class ChargeSchedule(object):
         return '<ChargeSchedule {}>'.format(self._schedule)
 
     def for_json(self):
-        return {
-            'calendar': {
-                day: charges for day, charges in self._schedule.items()
-            }
+        result = {
+            'id': self.id,
+            'activated': self.activated
         }
+        for day in DAYS:
+            result[day] = self._schedule[day].for_json()
+        return result
 
 
 class ScheduledCharge(object):
@@ -104,12 +169,15 @@ class ScheduledCharge(object):
         if start >= end:
             raise RuntimeError('Start time should be before end time.')
 
-        start_string = '{:02g}{:02g}'.format(
-            start.hour,
-            round_fifteen(start.minute)
+        start_rounded = round_date_fifteen(start)
+        end_rounded = round_date_fifteen(end)
+
+        start_string = 'T{:02g}:{:02g}Z'.format(
+            start_rounded.hour,
+            start_rounded.minute
         )
 
-        duration = round_fifteen((end - start).total_seconds() // 60)
+        duration = round_fifteen((end_rounded - start_rounded).total_seconds() // 60)
 
         if duration < 15:
             raise RuntimeError('Duration must be at least 15 minutes')
@@ -160,13 +228,14 @@ class InvalidScheduleException(Exception):
 
 def _validate_start_time(start_time):
     if isinstance(start_time, str):
-        if len(start_time) == 4:
-            hour = start_time[0:2]
-            minute = start_time[2:4]
+        if len(start_time) == 7:
+            if start_time[0] == 'T' and start_time[3] == ':' and start_time[6] == 'Z':
+                hour = start_time[1:3]
+                minute = start_time[4:6]
 
-            if 0 <= int(hour) < 24:
-                if minute in ['00', '15', '30', '45']:
-                    return True
+                if 0 <= int(hour) < 24:
+                    if minute in ['00', '15', '30', '45']:
+                        return True
     raise InvalidScheduleException("{} is not a valid start time".format(start_time))
 
 
@@ -178,11 +247,11 @@ def _validate_duration(duration):
 
 
 def _minuteize(timestr):
-    return (int(timestr[:2]) * 60) + int(timestr[2:])
+    return (int(timestr[1:3]) * 60) + int(timestr[4:6])
 
 
 def _deminuteize(tval):
-    return '{:02g}{:02g}'.format(
+    return 'T{:02g}:{:02g}Z'.format(
         math.floor(tval / 60),
         tval % 60
     )
@@ -190,3 +259,14 @@ def _deminuteize(tval):
 
 def round_fifteen(val):
     return (val // 15) * 15
+
+
+def round_date_fifteen(dt):
+    return datetime.datetime(
+        year=dt.year,
+        month=dt.month,
+        day=dt.day,
+        hour=dt.hour,
+        minute=round_fifteen(dt.minute),
+        second=0
+    )

@@ -1,4 +1,5 @@
 from .common import add_vehicle_args, format_duration_minutes, get_vehicle
+from pyze.api import ChargeState, PlugState
 from tabulate import tabulate
 
 import collections
@@ -35,17 +36,27 @@ def run(parsed_args):
     status = wrap_unavailable(v, 'battery_status')
     # {'lastUpdateTime': '2019-07-12T00:38:01Z', 'chargePower': 2, 'instantaneousPower': 6600, 'plugStatus': 1, 'chargeStatus': 1, 'batteryLevel': 28, 'rangeHvacOff': 64, 'timeRequiredToFullSlow': 295}
     if status.get('_unavailable', False):
-        plugged_in, charging = False, False
+        plug_state = PlugState.NOT_AVAILABLE
+        charge_state = ChargeState.NOT_AVAILABLE
         range_text = status['rangeHvacOff']
     else:
-        plugged_in, charging = status.get('plugStatus', 0) > 0, status.get('chargeStatus', 0) > 0
-        if 'rangeHvacOff' in status:
+        try:
+            plug_state = PlugState(status.get('plugStatus'))
+        except ValueError:
+            plug_state = PlugState.NOT_AVAILABLE
+
+        try:
+            charge_state = ChargeState(status.get('chargingStatus'))
+        except ValueError:
+            charge_state = ChargeState.NOT_AVAILABLE
+
+        if 'batteryAutonomy' in status:
             if parsed_args.km:
-                range_text = '{:.1f} km'.format(status['rangeHvacOff'])
+                range_text = '{:.1f} km'.format(status['batteryAutonomy'])
             else:
-                range_text = '{:.1f} miles'.format(status['rangeHvacOff'] / KM_PER_MILE)
+                range_text = '{:.1f} miles'.format(status['batteryAutonomy'] / KM_PER_MILE)
         else:
-            range_text = status['rangeHvacOff']  # Fall back to default value
+            range_text = status['batteryAutonomy']  # Fall back to default value
 
     try:
         charge_mode = v.charge_mode()
@@ -80,22 +91,23 @@ def run(parsed_args):
 
     try:
         update_time = dateutil.parser.parse(
-            status['lastUpdateTime']
+            status['timestamp']
         ).astimezone(
             dateutil.tz.tzlocal()
         ).strftime(
             '%Y-%m-%d %H:%M:%S'
         )
     except ValueError:
-        update_time = status['lastUpdateTime']
+        update_time = status['timestamp']
 
     vehicle_table = [
         ["Battery level", "{}%".format(status['batteryLevel'])],
+        ["Available energy", "{}kWh".format(status['batteryAvailableEnergy'])] if status.get('batteryAvailableEnergy', 0) > 0 else None,
         ["Range estimate", range_text],
-        ['Plugged in', 'Yes' if plugged_in else 'No'],
-        ['Charging', 'Yes' if charging else 'No'],
-        ['Charge rate', "{:.2f}kW".format(status['instantaneousPower'] / 1000)] if 'instantaneousPower' in status else None,
-        ['Time remaining', format_duration_minutes(status['timeRequiredToFullSlow'])[:-3]] if 'timeRequiredToFullSlow' in status else None,
+        ['Plug state', plug_state.name],
+        ['Charging state', charge_state.name],
+        ['Charge rate', "{:.2f}kW".format(status['chargingInstantaneousPower'] / 1000)] if 'chargingInstantaneousPower' in status else None,
+        ['Time remaining', format_duration_minutes(status['chargingRemainingTime'])[:-3]] if 'chargingRemainingTime' in status else None,
         ['Charge mode', charge_mode.value if hasattr(charge_mode, 'value') else charge_mode],
         ['AC state', hvac['hvacStatus']] if 'hvacStatus' in hvac else None,
         ['AC start at', hvac_start] if hvac_start else None,

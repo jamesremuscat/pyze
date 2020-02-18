@@ -1,11 +1,13 @@
 from .credentials import CredentialStore, requires_credentials, TOKEN_STORE
 from .gigya import Gigya
-from .schedule import ChargeSchedule, ChargeMode
+from .schedule import ChargeSchedules, ChargeMode
 from collections import namedtuple
+from enum import Enum
 from functools import lru_cache
 
 import datetime
 import dateutil.tz
+import itertools
 import jwt
 import logging
 import os
@@ -177,31 +179,37 @@ class Vehicle(object):
                 'x-gigya-id_token': self._kamereon._gigya.get_jwt_token(),
                 'x-kamereon-authorization': 'Bearer {}'.format(self._kamereon.get_token())
             },
+            params={
+                'country': self._kamereon._country
+            },
             **kwargs
         )
 
     def _get(self, endpoint, version=1):
         response = self._request(
             'GET',
-            '{}/commerce/v1/accounts/kmr/remote-services/car-adapter/v{}/cars/{}/{}'.format(
+            '{}/commerce/v1/accounts/{}/kamereon/kca/car-adapter/v{}/cars/{}/{}'.format(
                 self._root_url,
+                self._kamereon.get_account_id(),
                 version,
                 self._vin,
                 endpoint
             )
         )
 
+        _log.debug('Received Kamereon vehicle response: {}'.format(response.text))
+        _log.debug('Response headers: {}'.format(response.headers))
         response.raise_for_status()
         json = response.json()
-        _log.debug('Received Kamereon vehicle response: {}'.format(json))
         return json['data']['attributes']
 
     def _post(self, endpoint, data, version=1):
         _log.debug('POSTing with data: {}'.format(data))
         response = self._request(
             'POST',
-            '{}/commerce/v1/accounts/kmr/remote-services/car-adapter/v{}/cars/{}/{}'.format(
+            '{}/commerce/v1/accounts/{}/kamereon/kca/car-adapter/v{}/cars/{}/{}'.format(
                 self._root_url,
+                self._kamereon.get_account_id(),
                 version,
                 self._vin,
                 endpoint
@@ -211,13 +219,14 @@ class Vehicle(object):
             }
         )
 
+        _log.debug('Received Kamereon vehicle response: {}'.format(response.text))
+        _log.debug('Response headers: {}'.format(response.headers))
         response.raise_for_status()
         json = response.json()
-        _log.debug('Received Kamereon vehicle response: {}'.format(json))
         return json
 
     def battery_status(self):
-        return self._get('battery-status')
+        return self._get('battery-status', 2)
 
     def hvac_status(self):
         return self._get('hvac-status')
@@ -240,9 +249,9 @@ class Vehicle(object):
     def location(self):
         return self._get('location')
 
-    def charge_schedule(self):
-        return ChargeSchedule(
-            self._get('charge-schedule')
+    def charge_schedules(self):
+        return ChargeSchedules(
+            self._get('charging-settings')
         )
 
     def notification_settings(self):
@@ -345,24 +354,25 @@ class Vehicle(object):
             }
         )
 
-    def set_charge_schedule(self, schedule):
-        if not isinstance(schedule, ChargeSchedule):
-            raise RuntimeError('Expected schedule to be instance of ChargeSchedule, but got {} instead'.format(schedule.__class__))
-        schedule.validate()
+    def set_charge_schedules(self, schedules):
+        if not isinstance(schedules, ChargeSchedules):
+            raise RuntimeError('Expected schedule to be instance of ChargeSchedules, but got {} instead'.format(schedule.__class__))
+        schedules.validate()
 
         data = {
             'type': 'ChargeSchedule',
-            'attributes': schedule
+            'attributes': schedules
         }
 
         return self._post(
             'actions/charge-schedule',
-            simplejson.loads(simplejson.dumps(data, for_json=True))
+            simplejson.loads(simplejson.dumps(data, for_json=True)),
+            version=2
         )
 
     def set_charge_mode(self, charge_mode):
         if not isinstance(charge_mode, ChargeMode):
-            raise RuntimeError('Expceted charge_mode to be instance of ChargeMode, but got {} instead'.format(charge_mode.__class__))
+            raise RuntimeError('Expected charge_mode to be instance of ChargeMode, but got {} instead'.format(charge_mode.__class__))
 
         data = {
             'type': 'ChargeMode',
@@ -375,6 +385,56 @@ class Vehicle(object):
             'actions/charge-mode',
             data
         )
+
+    def charge_start(self):
+        return self._post(
+            'actions/charging-start',
+            {
+                'type': 'ChargingStart',
+                'attributes': {
+                    'action': 'start'
+                }
+            }
+        )
+
+# Serious metaprogramming follows:
+# https://www.notinventedhere.org/articles/python/how-to-use-strings-as-name-aliases-in-python-enums.html
+
+
+_CHARGE_STATES = {
+    0.0: ['Not charging', 'NOT_IN_CHARGE'],
+    0.1: ['Waiting for planned charge', 'WAITING_FOR_PLANNED_CHARGE'],
+    0.2: ['Charge ended', 'CHARGE_ENDED'],
+    0.3: ['Waiting for current charge', 'WAITING_FOR_CURRENT_CHARGE'],
+    0.4: ['Energy flap opened', 'ENERGY_FLAP_OPENED'],
+    1.0: ['Charging', 'CHARGE_IN_PROGRESS'],
+    # This next is more accurately "not charging" (<= ZE40) or "error" (ZE50).
+    # But I don't want to include 'error' in the output text because people will
+    # think that it's an error in Pyze when their ZE40 isn't plugged in...
+    -1.0: ['Not charging or plugged in', 'CHARGE_ERROR'],
+    -1.1: ['Not available', 'NOT_AVAILABLE']
+}
+
+ChargeState = Enum(
+    value='ChargeState',
+    names=itertools.chain.from_iterable(
+        itertools.product(v, [k]) for k, v in _CHARGE_STATES.items()
+    )
+)
+
+_PLUG_STATES = {
+    0: ['Unplugged', 'UNPLUGGED'],
+    1: ['Plugged in', 'PLUGGED'],
+    -1: ['Plug error', 'PLUG_ERROR'],
+    -2147483648: ['Not available', 'NOT_AVAILABLE']
+}
+
+PlugState = Enum(
+    value='PlugState',
+    names=itertools.chain.from_iterable(
+        itertools.product(v, [k]) for k, v in _PLUG_STATES.items()
+    )
+)
 
 
 PERIOD_FORMATS = {
