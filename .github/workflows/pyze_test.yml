@@ -25,7 +25,7 @@ jobs:
         pycodestyle src/
     - name: Run pytest
       run: |
-        python setup.py pytest --addopts "--junitxml=test-results.xml --cov=pyze --cov-report=xml --cov-report=html"
+        python setup.py pytest --addopts "--junitxml=test-results.xml --cov=pyze --cov-report=xml"
     - name: Upload test results
       uses: actions/upload-artifact@master
       with:
@@ -33,13 +33,15 @@ jobs:
         path: test-results.xml
       # Use always() to always run this step to publish test results when there are test failures
       if: always()
-    - name: Upload HTML coverage results
-      uses: actions/upload-artifact@master
-      with:
-        name: coverage
-        path: htmlcov
     - name: Upload XML coverage results
       uses: actions/upload-artifact@master
       with:
         name: coverage-xml
         path: coverage.xml
+    - name: Upload coverage to Coveralls
+      env:
+        COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+        CI_BRANCH: ${GITHUB_REF#"ref/heads"}
+      run: |
+        pip install coveralls
+        coveralls
