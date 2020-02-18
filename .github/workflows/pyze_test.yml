@@ -25,4 +25,21 @@ jobs:
         pycodestyle src/
     - name: Run pytest
       run: |
-        python setup.py pytest
+        python setup.py pytest --addopts "--junitxml=test-results.xml --cov=pyze --cov-report=xml --cov-report=html"
+    - name: Upload test results
+      uses: actions/upload-artifact@master
+      with:
+        name: pytest-results
+        path: test-results.xml
+      # Use always() to always run this step to publish test results when there are test failures
+      if: always()
+    - name: Upload HTML coverage results
+      uses: actions/upload-artifact@master
+      with:
+        name: coverage
+        path: htmlcov
+    - name: Upload XML coverage results
+      uses: actions/upload-artifact@master
+      with:
+        name: coverage-xml
+        path: coverage.xml
