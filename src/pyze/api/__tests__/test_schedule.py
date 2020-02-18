@@ -1,6 +1,8 @@
-from pyze.api.schedule import ChargeSchedules, _minuteize, _deminuteize, \
-    ScheduledCharge, InvalidScheduleException
+from pyze.api.schedule import ChargeSchedule, ChargeSchedules, _minuteize, \
+    _deminuteize, ScheduledCharge, InvalidScheduleException, INITIAL_SCHEDULE, \
+    round_fifteen
 
+import dateparser
 import pytest
 
 
@@ -67,6 +69,16 @@ def test_deminuteize():
     assert _deminuteize((24 * 60) - 1) == 'T23:59Z'
 
 
+def test_round_fifteen():
+    assert round_fifteen(14) == 0
+    assert round_fifteen(15) == 15
+    assert round_fifteen(16) == 15
+
+    assert round_fifteen(29) == 15
+    assert round_fifteen(30) == 30
+    assert round_fifteen(31) == 30
+
+
 class TestScheduledCharge:
     def test_spans_midnight(self):
         before_midnight = ScheduledCharge('T23:30Z', 15)
@@ -110,6 +122,55 @@ class TestScheduledCharge:
         with pytest.raises(InvalidScheduleException, match=r".*not a valid duration.*"):
             ScheduledCharge('T12:00Z', '15').validate()
 
+    def test_between(self):
+        sc = ScheduledCharge.between(
+            dateparser.parse('17:00'),
+            dateparser.parse('21:00')
+        )
+
+        assert sc.start_time == 'T17:00Z'
+        assert sc.duration == 240
+
+        sc2 = ScheduledCharge.between(
+            dateparser.parse('23:05'),
+            dateparser.parse('03:31 tomorrow')
+        )
+
+        assert sc2.start_time == 'T23:00Z'
+        assert sc2.finish_time == 'T03:30Z'
+        assert sc2.duration == 270
+
+        with pytest.raises(RuntimeError, match=r"Expected start to be a datetime.*"):
+            ScheduledCharge.between(
+                '23:00',
+                dateparser.parse('03:30 tomorrow')
+            )
+
+        with pytest.raises(RuntimeError, match=r"Expected end to be a datetime.*"):
+            ScheduledCharge.between(
+                dateparser.parse('23:00'),
+                '03:30 tomorrow'
+            )
+
+        with pytest.raises(RuntimeError, match='Start time should be before end time'):
+            ScheduledCharge.between(
+                dateparser.parse('23:00'),
+                dateparser.parse('03:30')
+            )
+
+    def test_overlaps(self):
+        first = ScheduledCharge.between(
+            dateparser.parse('23:00'),
+            dateparser.parse('01:00 tomorrow')
+        )
+        second = ScheduledCharge.between(
+            dateparser.parse('00:30 tomorrow'),
+            dateparser.parse('02:00 tomorrow')
+        )
+
+        assert first.overlaps(second) is True
+        assert second.overlaps(first) is False
+
 
 class TestCreatingFromNew():
     def test_create_schedules(self):
@@ -129,3 +190,44 @@ class TestCreatingFromNew():
 
         sch2 = cs.new_schedule()
         assert sch2.id == 2
+
+
+class TestChargeSchedule():
+    def test_create_new(self):
+        cs = ChargeSchedule()
+        assert cs['monday'].start_time == 'T12:00Z'
+        cs.validate()
+
+    def test_validates_overlap(self):
+        cs = ChargeSchedule()
+
+        cs['monday'].start_time = 'T23:45Z'
+        cs['monday'].duration = 30
+
+        cs['tuesday'].start_time = 'T00:00Z'
+
+        with pytest.raises(
+            InvalidScheduleException,
+            match='Charge for monday overlaps charge for tuesday'
+        ):
+            cs.validate()
+
+    def test_set_item(self):
+        cs = ChargeSchedule()
+
+        sch = ScheduledCharge('T07:30Z', 120)
+
+        with pytest.raises(RuntimeError, match=r".*not a valid day"):
+            cs['florsday'] = sch
+
+        with pytest.raises(RuntimeError, match=r"Expected ScheduledCharge, got.*"):
+            cs['friday'] = 1138
+
+        cs['friday'] = sch
+        assert cs['friday'] == sch
+
+    def test_for_json(self):
+        cs = ChargeSchedule()
+        expected = INITIAL_SCHEDULE.copy()
+        expected['id'] = None
+        assert cs.for_json() == expected

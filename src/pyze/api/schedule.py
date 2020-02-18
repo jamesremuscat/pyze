@@ -144,7 +144,7 @@ class ChargeSchedule(object):
             'activated': self.activated
         }
         for day in DAYS:
-            result[day] = self._schedule[day]
+            result[day] = self._schedule[day].for_json()
         return result
 
 
@@ -169,12 +169,15 @@ class ScheduledCharge(object):
         if start >= end:
             raise RuntimeError('Start time should be before end time.')
 
+        start_rounded = round_date_fifteen(start)
+        end_rounded = round_date_fifteen(end)
+
         start_string = 'T{:02g}:{:02g}Z'.format(
-            start.hour,
-            round_fifteen(start.minute)
+            start_rounded.hour,
+            start_rounded.minute
         )
 
-        duration = round_fifteen((end - start).total_seconds() // 60)
+        duration = round_fifteen((end_rounded - start_rounded).total_seconds() // 60)
 
         if duration < 15:
             raise RuntimeError('Duration must be at least 15 minutes')
@@ -256,3 +259,14 @@ def _deminuteize(tval):
 
 def round_fifteen(val):
     return (val // 15) * 15
+
+
+def round_date_fifteen(dt):
+    return datetime.datetime(
+        year=dt.year,
+        month=dt.month,
+        day=dt.day,
+        hour=dt.hour,
+        minute=round_fifteen(dt.minute),
+        second=0
+    )
