@@ -20,7 +20,7 @@ def _parse_schedule(data):
     for day in DAYS:
         schedule[day] = ScheduledCharge(data[day]['startTime'], data[day]['duration'])
 
-    return data['id'], data['activated'], schedule
+    return data.get('id'), data.get('activated', False), schedule
 
 
 MINUTES_IN_DAY = 60 * 24
@@ -32,13 +32,13 @@ class ChargeMode(Enum):
 
 
 class ChargeSchedules(object):
-    def __init__(self, raw):
+    def __init__(self, raw={}):
         self._schedules = {}
 
-        for schedule in raw['schedules']:
+        for schedule in raw.get('schedules', []):
             self._schedules[schedule['id']] = ChargeSchedule(schedule)
 
-        self.mode = raw['mode']
+        self.mode = raw.get('mode', 'scheduled')
 
     def __getitem__(self, key):
         return self._schedules[key]
@@ -47,6 +47,22 @@ class ChargeSchedules(object):
         if not isinstance(value, ChargeSchedule):
             raise RuntimeError('Expected ChargeSchedule, got {} instead'.format(value.__class__))
         self._schedules[key] = value
+
+    def _next_schedule_id(self):
+        return max(list(self._schedules.keys()) + [0]) + 1
+
+    def add(self, schedule):
+        if not isinstance(schedule, ChargeSchedule):
+            raise RuntimeError('Expected ChargeSchedule, got {} instead'.format(schedule.__class__))
+        if not schedule.id:
+            schedule.id = self._next_schedule_id()
+        self._schedules[schedule.id] = schedule
+
+    def new_schedule(self):
+        schedule = ChargeSchedule()
+        schedule.id = self._next_schedule_id()
+        self._schedules[schedule.id] = schedule
+        return schedule
 
     def items(self):
         return self._schedules.items()
@@ -70,10 +86,22 @@ class ChargeSchedules(object):
                 if seen_active:
                     raise InvalidScheduleException('Multiple schedules are active')
                 seen_active = True
+        return True
+
+
+INITIAL_SCHEDULE = {
+    'activated': False
+}
+
+for day in DAYS:
+    INITIAL_SCHEDULE[day] = {
+        'startTime': 'T12:00Z',
+        'duration': 15
+    }
 
 
 class ChargeSchedule(object):
-    def __init__(self, data):
+    def __init__(self, data=INITIAL_SCHEDULE):
         self.id, self.activated, self._schedule = _parse_schedule(data)
 
     def validate(self):

@@ -109,3 +109,23 @@ class TestScheduledCharge:
             ScheduledCharge('T12:00Z', -1).validate()
         with pytest.raises(InvalidScheduleException, match=r".*not a valid duration.*"):
             ScheduledCharge('T12:00Z', '15').validate()
+
+
+class TestCreatingFromNew():
+    def test_create_schedules(self):
+        cs = ChargeSchedules()
+        assert len(cs) == 0
+
+    def test_create_schedule(self):
+        cs = ChargeSchedules()
+
+        sch = cs.new_schedule()
+        assert sch.id == 1
+        assert sch['monday'].start_time == 'T12:00Z'
+        assert sch['wednesday'].duration == 15
+
+        assert sch.validate() is True
+        assert cs.validate() is True
+
+        sch2 = cs.new_schedule()
+        assert sch2.id == 2
