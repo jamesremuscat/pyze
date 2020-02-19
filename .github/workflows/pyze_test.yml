@@ -1,4 +1,4 @@
-name: Pyze
+name: Tests
 
 on:
 - push

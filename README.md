@@ -1,5 +1,7 @@
 # PyZE: Python client for Renault ZE API
 
+![Test status](https://github.com/jamesremuscat/pyze/workflows/Tests/badge.svg) [![Coverage status](https://coveralls.io/repos/github/jamesremuscat/pyze/badge.svg)](https://coveralls.io/github/jamesremuscat/pyze) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 ## Obtaining API keys
 
 You need two API keys: one for Kamereon and one for Gigya. Both can be obtained
@@ -66,8 +68,8 @@ for a walkthrough of the required steps to authenticate and use the API.
 
 ### Issues
 
-Check to see that the problem you're experiencing isn't listed on the 
-[known issues with the Renault API](https://github.com/jamesremuscat/pyze/wiki/Known-issues-with-the-Renault-API) 
+Check to see that the problem you're experiencing isn't listed on the
+[known issues with the Renault API](https://github.com/jamesremuscat/pyze/wiki/Known-issues-with-the-Renault-API)
 page on the wiki. Things listed on that page are not within our power to fix!
 
 ### Feature requests
