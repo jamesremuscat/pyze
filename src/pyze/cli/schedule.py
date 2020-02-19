@@ -91,6 +91,7 @@ def print_schedule(s, use_utc):
             headers=['Day', 'Start time', 'End time', 'Duration']
         )
     )
+    print()
 
 
 def format_schedule(s, use_utc):

@@ -231,3 +231,9 @@ class TestChargeSchedule():
         expected = INITIAL_SCHEDULE.copy()
         expected['id'] = None
         assert cs.for_json() == expected
+
+        # New API allows days to have no scheduled charges
+        # see https://github.com/jamesremuscat/pyze/issues/46
+        del cs['monday']
+        del expected['monday']
+        assert cs.for_json() == expected
