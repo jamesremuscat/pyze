@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-_VERSION = '0.3.0'
+_VERSION = '0.4.0'
 
 setup(
     name='PyZE',
@@ -32,5 +32,10 @@ setup(
         'console_scripts': [
             'pyze = pyze.cli.__main__:main'
         ],
-    }
+    },
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+    ]
 )
