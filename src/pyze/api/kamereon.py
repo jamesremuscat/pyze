@@ -245,7 +245,7 @@ class Vehicle(object):
     def lock_status(self):
         return self._get('lock-status')
 
-    # Not (currently) implemented server-side
+    # Not implemented server-side for most vehicles
     def location(self):
         return self._get('location')
 
