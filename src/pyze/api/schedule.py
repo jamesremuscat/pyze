@@ -18,7 +18,11 @@ DAYS = [
 def _parse_schedule(data):
     schedule = {}
     for day in DAYS:
-        schedule[day] = ScheduledCharge(data[day]['startTime'], data[day]['duration'])
+        if day in data:
+            schedule[day] = ScheduledCharge(
+                data[day]['startTime'],
+                data[day]['duration']
+            )
 
     return data.get('id'), data.get('activated', False), schedule
 
@@ -110,8 +114,8 @@ class ChargeSchedule(object):
 
             if charge_time.spans_midnight:
                 next_day = DAYS[(DAYS.index(day) + 1) % len(DAYS)]
-                tomorrow_charge = self._schedule[next_day]
-                if charge_time.overlaps(tomorrow_charge):
+                tomorrow_charge = self._schedule.get(next_day)
+                if tomorrow_charge and charge_time.overlaps(tomorrow_charge):
                     raise InvalidScheduleException('Charge for {} overlaps charge for {}'.format(day, next_day))
         return True
 
@@ -129,6 +133,9 @@ class ChargeSchedule(object):
         # to make it valid (or else risk it being essentially immutable without gymnastics).
         self._schedule[key] = value
 
+    def __delitem__(self, key):
+        return self._schedule.__delitem__(key)
+
     def items(self):
         return self._schedule.items()
 
@@ -143,8 +150,8 @@ class ChargeSchedule(object):
             'id': self.id,
             'activated': self.activated
         }
-        for day in DAYS:
-            result[day] = self._schedule[day].for_json()
+        for day, schedule in self._schedule.items():
+            result[day] = schedule.for_json()
         return result
 
 
