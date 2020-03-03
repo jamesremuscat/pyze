@@ -228,6 +228,9 @@ class Vehicle(object):
     def battery_status(self):
         return self._get('battery-status', 2)
 
+    def location(self):
+        return self._get('location')
+
     def hvac_status(self):
         return self._get('hvac-status')
 

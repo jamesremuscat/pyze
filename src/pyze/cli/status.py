@@ -72,6 +72,19 @@ def run(parsed_args):
         else:
             mileage_text = "{:.1f} mi".format(mileage['totalMileage'] / KM_PER_MILE)
 
+    location = wrap_unavailable(v, 'location')
+    if location.get('_unavailable', False) or 'gpsLatitude' not in location:
+        location_text = location['gpsLatitude']
+    else:
+        location_date = dateutil.parser.parse(
+            location['lastUpdateTime']
+        ).astimezone(
+            dateutil.tz.tzlocal()
+        ).strftime(
+            '%Y-%m-%d %H:%M:%S'
+        )
+        location_text = "{:.8f},{:.8f} as of {}".format(location['gpsLatitude'], location['gpsLongitude'], location_date)
+
     hvac = wrap_unavailable(v, 'hvac_status')
     if hvac.get('_unavailable', False):
         hvac_start = hvac['nextHvacStartDate']
@@ -114,7 +127,8 @@ def run(parsed_args):
         ['External temperature', external_temp],
         ['Battery temperature', "{}°C".format(status['batteryTemperature'])] if 'batteryTemperature' in status else None,
         ['Total mileage', mileage_text],
-        ['Updated at', update_time]
+        ['Updated at', update_time],
+        ['Location', location_text]
     ]
 
     print(
