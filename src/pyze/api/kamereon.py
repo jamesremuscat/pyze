@@ -128,7 +128,14 @@ class Kamereon(CachingAPIObject):
 
         token = response_body.get('accessToken')
         if token:
-            decoded = jwt.decode(token, options={'verify_signature': False, 'verify_aud': False})
+            decoded = jwt.decode(
+                token,
+                options={
+                    'verify_signature': False,
+                    'verify_aud': False,
+                    'verify_nbf': False
+                }
+            )
             self._credentials['kamereon'] = (token, decoded['exp'])
             self._clear_all_caches()
             return token
