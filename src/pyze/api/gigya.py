@@ -1,4 +1,4 @@
-from .credentials import CredentialStore
+from .credentials import DefaultCredentialStore
 from functools import lru_cache
 
 import jwt
@@ -18,7 +18,7 @@ class Gigya(object):
         credentials=None,
         root_url=DEFAULT_ROOT_URL,
     ):
-        self._credentials = credentials or CredentialStore()
+        self._credentials = credentials or DefaultCredentialStore()
         self._session = requests.Session()
         self._root_url = root_url
         if api_key:

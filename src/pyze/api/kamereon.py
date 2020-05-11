@@ -1,4 +1,4 @@
-from .credentials import CredentialStore
+from .credentials import DefaultCredentialStore
 from .gigya import Gigya
 from .schedule import ChargeSchedules, ChargeMode
 from collections import namedtuple
@@ -42,7 +42,7 @@ class Kamereon(CachingAPIObject):
     ):
 
         self._root_url = root_url
-        self._credentials = credentials or CredentialStore()
+        self._credentials = credentials or DefaultCredentialStore()
         self._country = country
         self._gigya = gigya or Gigya(credentials=self._credentials)
         self._session = requests.Session()
