@@ -94,7 +94,6 @@ class CredentialStore(object):
                     raise MissingCredentialException(name)
 
 
-
 Credential = namedtuple(
     'Credential',
     [
