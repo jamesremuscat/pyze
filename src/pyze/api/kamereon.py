@@ -1,4 +1,4 @@
-from .credentials import CredentialStore, requires_credentials, TOKEN_STORE
+from .credentials import CredentialStore
 from .gigya import Gigya
 from .schedule import ChargeSchedules, ChargeMode
 from collections import namedtuple
@@ -82,8 +82,8 @@ class Kamereon(CachingAPIObject):
         self._credentials['kamereon-account'] = (account['accountId'], None)
         return account['accountId']
 
-    @requires_credentials('gigya', 'gigya-person-id', 'kamereon-api-key')
     def get_accounts(self):
+        self._credentials.requires('gigya', 'gigya-person-id', 'kamereon-api-key')
         response = self._session.get(
             '{}/commerce/v1/persons/{}?country={}'.format(
                 self._root_url,
@@ -105,8 +105,8 @@ class Kamereon(CachingAPIObject):
     def set_account_id(self, account_id):
         self._credentials['kamereon-account'] = (account_id, None)
 
-    @requires_credentials('gigya', 'gigya-person-id', 'kamereon-api-key')
     def get_token(self):
+        self._credentials.requires('gigya', 'gigya-person-id', 'kamereon-api-key')
         if 'kamereon' in self._credentials:
             return self._credentials['kamereon']
 
@@ -147,8 +147,8 @@ class Kamereon(CachingAPIObject):
             )
 
     @lru_cache(maxsize=1)
-    @requires_credentials('kamereon-api-key')
     def get_vehicles(self):
+        self._credentials.requires('kamereon-api-key')
         response = self._session.get(
             '{}/commerce/v1/accounts/{}/vehicles?country={}'.format(
                 self._root_url,
@@ -175,8 +175,8 @@ class Vehicle(object):
         self._kamereon = kamereon or Kamereon()
         self._root_url = self._kamereon._root_url
 
-    @requires_credentials('kamereon-api-key')
     def _request(self, method, endpoint, **kwargs):
+        self._kamereon._credentials.requires('kamereon-api-key')
         return self._kamereon._session.request(
             method,
             endpoint,
