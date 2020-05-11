@@ -1,4 +1,4 @@
-from .credentials import requires_credentials, CredentialStore
+from .credentials import CredentialStore
 from functools import lru_cache
 
 import jwt
@@ -62,8 +62,8 @@ class Gigya(object):
             )
 
     @lru_cache(maxsize=1)
-    @requires_credentials('gigya')
     def account_info(self):
+        self._credentials.requires('gigya')
         response = self._session.post(
             self._root_url + '/accounts.getAccountInfo',
             {
@@ -88,8 +88,8 @@ class Gigya(object):
             )
         )
 
-    @requires_credentials('gigya')
     def get_jwt_token(self):
+        self._credentials.requires('gigya')
 
         if 'gigya-token' in self._credentials:
             return self._credentials['gigya-token']

@@ -17,18 +17,6 @@ class MissingCredentialException(Exception):
     pass
 
 
-def requires_credentials(*names):
-    def _requires_credentials(func):
-        def inner(*args, **kwargs):
-            for name in names:
-                if name not in CredentialStore():
-                    raise MissingCredentialException(name)
-            return func(*args, **kwargs)
-
-        return inner
-    return _requires_credentials
-
-
 def init_store():
     new_store = {}
     try:
@@ -99,6 +87,12 @@ class CredentialStore(object):
 
             if 'KAMEREON_API_KEY' in os.environ:
                 self.store('kamereon-api-key', os.environ['KAMEREON_API_KEY'], None)
+
+        def requires(self, *names):
+            for name in names:
+                if name not in self._store:
+                    raise MissingCredentialException(name)
+
 
 
 Credential = namedtuple(
