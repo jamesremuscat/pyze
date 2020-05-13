@@ -20,7 +20,6 @@ setup(
         'simplejson',
         'tabulate',
         'tzlocal',
-        'inspect',
         'asyncio',
         'aiohttp',
         'async_lru'
