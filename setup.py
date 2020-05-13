@@ -19,7 +19,11 @@ setup(
         'requests',
         'simplejson',
         'tabulate',
-        'tzlocal'
+        'tzlocal',
+        'inspect',
+        'asyncio',
+        'aiohttp',
+        'async_lru'
     ],
     setup_requires=[
         'pytest-runner',

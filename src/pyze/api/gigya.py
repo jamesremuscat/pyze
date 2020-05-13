@@ -1,10 +1,13 @@
 from .credentials import DefaultCredentialStore
 from functools import lru_cache
+from async_lru import alru_cache
 
 import jwt
 import logging
 import os
 import requests
+import asyncio
+import aiohttp
 
 
 DEFAULT_ROOT_URL = 'https://accounts.eu1.gigya.com'
@@ -116,6 +119,126 @@ class Gigya(object):
             return token
 
         raise RuntimeError('Unable to find Gigya JWT token in response: {}'.format(response.text))
+
+
+class GigyaAsync(object):
+    def __init__(
+        self,
+        api_key=None,
+        credentials=None,
+        root_url=DEFAULT_ROOT_URL,
+        websession=None,
+    ):
+        self._credentials = credentials or DefaultCredentialStore()
+        self._root_url = root_url
+        self._websession = websession
+        self._websession_autoclear = False
+        if websession is None:
+            self._websession_autoclear = True
+            websession = aiohttp.ClientSession()
+        if api_key:
+            self.set_api_key(api_key)
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *excinfo):
+        if self._websession_autoclear:
+            await self._websession.close()
+
+    def set_api_key(self, api_key):
+        self._credentials.store('gigya-api-key', api_key, None)
+
+    async def login(self, user, password):
+        if 'gigya-api-key' not in self._credentials:
+            raise RuntimeError('Gigya API key not specified. Call set_api_key or set GIGYA_API_KEY environment variable.')
+
+        async with self._websession.post(
+            self._root_url + '/accounts.login',
+            data={
+                'ApiKey': self._credentials['gigya-api-key'],
+                'loginID': user,
+                'password': password
+            }
+        ) as response:
+
+            response.raise_for_status()
+
+            response_body = await response.json(content_type='text/javascript')
+
+            _log.debug('Received Gigya login response: {}'.format(response_body))
+            raise_gigya_errors(response_body)
+
+            token = response_body.get('sessionInfo', {}).get('cookieValue')
+
+            if token:
+                # Any stored credentials may be based on an old gigya login
+                self._credentials.clear()
+                self._credentials['gigya'] = (token, None)
+                self.account_info.cache_clear()
+                return response_body
+
+            raise RuntimeError(
+                'Unable to find Gigya token from login response! Response included keys {}'.format(
+                    ', '.join(response_body.keys())
+                )
+            )
+
+    @alru_cache(maxsize=1)
+    async def account_info(self):
+        self._credentials.requires('gigya')
+        async with self._websession.post(
+            self._root_url + '/accounts.getAccountInfo',
+            data={
+                'oauth_token': self._credentials['gigya']
+            }
+        ) as response:
+
+            response.raise_for_status()
+            response_body = await response.json(content_type='text/javascript')
+            _log.debug('Received Gigya accountInfo response: {}'.format(response_body))
+            raise_gigya_errors(response_body)
+
+            person_id = response_body.get('data', {}).get('personId')
+
+            if person_id:
+                self._credentials['gigya-person-id'] = (person_id, None)
+                return response_body
+
+            raise RuntimeError(
+                'Unable to find Gigya person ID from account info! Response contained keys {}'.format(
+                    ', '.join(response_body.keys())
+                )
+            )
+
+    async def get_jwt_token(self):
+        self._credentials.requires('gigya')
+
+        if 'gigya-token' in self._credentials:
+            return self._credentials['gigya-token']
+
+        async with self._websession.post(
+            self._root_url + '/accounts.getJWT',
+            data={
+                'oauth_token': self._credentials['gigya'],
+                'fields': 'data.personId,data.gigyaDataCenter',
+                'expiration': 900
+            }
+        ) as response:
+
+            response.raise_for_status()
+            response_body = await response.json(content_type='text/javascript')
+            _log.debug('Received Gigya getJWT response: {}'.format(response_body))
+            raise_gigya_errors(response_body)
+
+            token = response_body.get('id_token')
+
+            if token:
+                decoded = jwt.decode(token, options={'verify_signature': False})
+                self._credentials['gigya-token'] = (token, decoded['exp'])
+                return token
+
+            raise RuntimeError('Unable to find Gigya JWT token in response: {}'.format(response.text))
 
 
 def raise_gigya_errors(response_body):
