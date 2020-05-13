@@ -569,7 +569,7 @@ class VehicleAsync(object):
 
     async def _request(self, method, url, **kwargs):
         self._kamereon._credentials.requires('kamereon-api-key')
-        async with  await self._kamereon._websession.request(
+        async with await self._kamereon._websession.request(
             method,
             url,
             headers={
