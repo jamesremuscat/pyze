@@ -1,7 +1,9 @@
 from enum import Enum
+from tzlocal import get_localzone
+from datetime import datetime
 
-import datetime
 import math
+import re
 
 
 DAYS = [
@@ -92,6 +94,26 @@ class ChargeSchedules(object):
                 seen_active = True
         return True
 
+    def update(self, args):
+        if hasattr(args, 'id'):
+            key = args['id']
+        else:
+            key = 1
+
+        schedule = self._schedules[key]
+
+        for day in DAYS:
+            if hasattr(args, day):
+                day_value = getattr(args, day)
+
+                if day_value:
+                    start_time, duration = parse_day_value(day_value)
+
+                    if not hasattr(args, 'utc'):
+                        start_time = remove_offset(start_time)
+
+                    schedule[day] = ScheduledCharge(start_time, duration)
+
 
 INITIAL_SCHEDULE = {
     'activated': False
@@ -169,9 +191,9 @@ class ScheduledCharge(object):
 
         Times should be in UTC. No timezone conversion is applied by this method.
         '''
-        if not isinstance(start, datetime.datetime):
+        if not isinstance(start, datetime):
             raise RuntimeError('Expected start to be a datetime, got {} instead'.format(start.__class__))
-        if not isinstance(end, datetime.datetime):
+        if not isinstance(end, datetime):
             raise RuntimeError('Expected end to be a datetime, got {} instead'.format(end.__class__))
         if start >= end:
             raise RuntimeError('Start time should be before end time.')
@@ -269,7 +291,7 @@ def round_fifteen(val):
 
 
 def round_date_fifteen(dt):
-    return datetime.datetime(
+    return datetime(
         year=dt.year,
         month=dt.month,
         day=dt.day,
@@ -277,3 +299,46 @@ def round_date_fifteen(dt):
         minute=round_fifteen(dt.minute),
         second=0
     )
+
+
+def timezone_offset():
+    offset = get_localzone().utcoffset(datetime.now()).total_seconds() / 60
+    return offset / 60, offset % 60
+
+
+def apply_offset(raw):
+    offset_hours, offset_minutes = timezone_offset()
+    raw_hours = int(raw[1:3])
+    raw_minutes = int(raw[4:6])
+
+    return "{:02g}{:02g}".format(
+        (raw_hours + offset_hours) % 24,
+        raw_minutes + offset_minutes
+    )
+
+
+def remove_offset(raw):
+    offset_hours, offset_minutes = timezone_offset()
+    raw_hours = int(raw[1:3])
+    raw_minutes = int(raw[4:6])
+
+    return "T{:02g}:{:02g}Z".format(
+        raw_hours - offset_hours,
+        raw_minutes - offset_minutes
+    )
+
+
+DAY_VALUE_REGEX = re.compile('(?P<start_time>[0-2][0-9][0-5][05]),(?P<duration>[0-9]+[05])')
+
+
+def parse_day_value(raw):
+    match = DAY_VALUE_REGEX.match(raw)
+    if not match:
+        raise RuntimeError('Invalid specification for charge schedule: `{}`. Should be of the form HHMM,DURATION'.format(raw))
+
+    start_time = match.group('start_time')
+    formatted_start_time = 'T{}:{}Z'.format(
+        start_time[:2],
+        start_time[2:]
+    )
+    return [formatted_start_time, int(match.group('duration'))]

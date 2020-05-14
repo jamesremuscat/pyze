@@ -1,10 +1,7 @@
 from .common import add_vehicle_args, format_duration_minutes, get_vehicle
 from datetime import datetime
-from pyze.api.schedule import DAYS, ScheduledCharge
+from pyze.api.schedule import DAYS, ScheduledCharge, timezone_offset, apply_offset
 from tabulate import tabulate
-from tzlocal import get_localzone
-
-import re
 
 
 help_text = 'Show or edit your vehicle\'s charge schedule.'
@@ -59,24 +56,7 @@ def show(schedules, _, parsed_args):
 
 
 def edit(schedules, vehicle, parsed_args):
-    if parsed_args.id:
-        schd_id = parsed_args.id
-    else:
-        schd_id = 1
-
-    schedule = schedules[schd_id]
-
-    for day in DAYS:
-        if hasattr(parsed_args, day):
-            day_value = getattr(parsed_args, day)
-
-            if day_value:
-                start_time, duration = parse_day_value(day_value)
-
-                if not parsed_args.utc:
-                    start_time = remove_offset(start_time)
-
-                schedule[day] = ScheduledCharge(start_time, duration)
+    schedules.update(parsed_args)
 
     print('Setting new schedule (ID {}):'.format(schedule.id))
     print_schedule(schedule, parsed_args.utc)
@@ -124,46 +104,3 @@ def format_scheduled_charge(sc, use_utc):
 
 def format_stringy_time(raw):
     return "{}:{}".format(raw[0:2], raw[2:])
-
-
-def timezone_offset():
-    offset = get_localzone().utcoffset(datetime.now()).total_seconds() / 60
-    return offset / 60, offset % 60
-
-
-def apply_offset(raw):
-    offset_hours, offset_minutes = timezone_offset()
-    raw_hours = int(raw[1:3])
-    raw_minutes = int(raw[4:6])
-
-    return "{:02g}{:02g}".format(
-        (raw_hours + offset_hours) % 24,
-        raw_minutes + offset_minutes
-    )
-
-
-def remove_offset(raw):
-    offset_hours, offset_minutes = timezone_offset()
-    raw_hours = int(raw[1:3])
-    raw_minutes = int(raw[4:6])
-
-    return "T{:02g}:{:02g}Z".format(
-        raw_hours - offset_hours,
-        raw_minutes - offset_minutes
-    )
-
-
-DAY_VALUE_REGEX = re.compile('(?P<start_time>[0-2][0-9][0-5][05]),(?P<duration>[0-9]+[05])')
-
-
-def parse_day_value(raw):
-    match = DAY_VALUE_REGEX.match(raw)
-    if not match:
-        raise RuntimeError('Invalid specification for charge schedule: `{}`. Should be of the form HHMM,DURATION'.format(raw))
-
-    start_time = match.group('start_time')
-    formatted_start_time = 'T{}:{}Z'.format(
-        start_time[:2],
-        start_time[2:]
-    )
-    return [formatted_start_time, int(match.group('duration'))]
