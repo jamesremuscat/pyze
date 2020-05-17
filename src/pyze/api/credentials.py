@@ -96,9 +96,13 @@ class CredentialStore(object):
         def _add_api_keys_from_env(self):
             if 'GIGYA_API_KEY' in os.environ:
                 self.store('gigya-api-key', os.environ['GIGYA_API_KEY'], None)
+            else:
+                self.store('gigya-api-key', '3_4LKbCcMMcvjDm3X89LU4z4mNKYKdl_W0oD9w-Jvih21WqgJKtFZAnb9YdUgWT9_a', None)
 
             if 'KAMEREON_API_KEY' in os.environ:
                 self.store('kamereon-api-key', os.environ['KAMEREON_API_KEY'], None)
+            else:
+                self.store('gigya-api-key', 'oF09WnKqvBDcrQzcW1rJNpjIuy7KdGaB', None)
 
 
 Credential = namedtuple(
