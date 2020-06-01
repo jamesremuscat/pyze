@@ -96,7 +96,7 @@ class ChargeSchedules(object):
 
     def update(self, args):
         if hasattr(args, 'id'):
-            key = args['id']
+            key = args.id
         else:
             key = 1
 
