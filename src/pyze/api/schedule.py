@@ -94,25 +94,9 @@ class ChargeSchedules(object):
                 seen_active = True
         return True
 
-    def update(self, args):
-        if hasattr(args, 'id'):
-            key = args.id
-        else:
-            key = 1
-
-        schedule = self._schedules[key]
-
-        for day in DAYS:
-            if hasattr(args, day):
-                day_value = getattr(args, day)
-
-                if day_value:
-                    start_time, duration = parse_day_value(day_value)
-
-                    if not hasattr(args, 'utc'):
-                        start_time = remove_offset(start_time)
-
-                    schedule[day] = ScheduledCharge(start_time, duration)
+    def update(self, id, args):
+        schedule = self._schedules[id]
+        schedule.update(args)
 
 
 INITIAL_SCHEDULE = {
@@ -129,6 +113,19 @@ for day in DAYS:
 class ChargeSchedule(object):
     def __init__(self, data=INITIAL_SCHEDULE):
         self.id, self.activated, self._schedule = _parse_schedule(data)
+
+    def update(self, args):
+        for day in DAYS:
+            if hasattr(args, day):
+                day_value = getattr(args, day)
+
+                if day_value:
+                    start_time, duration = parse_day_value(day_value)
+
+                    if not hasattr(args, 'utc'):
+                        start_time = remove_offset(start_time)
+
+                    self[day] = ScheduledCharge(start_time, duration)
 
     def validate(self):
         for day, charge_time in self._schedule.items():

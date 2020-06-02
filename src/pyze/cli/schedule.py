@@ -56,7 +56,12 @@ def show(schedules, _, parsed_args):
 
 
 def edit(schedules, vehicle, parsed_args):
-    schedules.update(parsed_args)
+    if parsed_args.id:
+        schd_id = parsed_args.id
+    else:
+        schd_id = 1
+    schedule = schedules[schd_id]
+    schedules.update(schd_id, parsed_args)
 
     print('Setting new schedule (ID {}):'.format(schedule.id))
     print_schedule(schedule, parsed_args.utc)
