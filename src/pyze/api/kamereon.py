@@ -1,4 +1,4 @@
-from .credentials import CredentialStore, requires_credentials, TOKEN_STORE
+from .credentials import CredentialStore, requires_credentials
 from .gigya import Gigya
 from .schedule import ChargeSchedules, ChargeMode
 from collections import namedtuple
