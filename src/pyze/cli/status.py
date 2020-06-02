@@ -16,6 +16,7 @@ help_text = 'Show the current status of your vehicle.'
 def configure_parser(parser):
     add_vehicle_args(parser)
     parser.add_argument('--km', help='Give distances in kilometers (default is miles)', action='store_true')
+    parser.add_argument('--kw', help='Interpret charge rate as kilowatt (default is watt)', action='store_const', const=1, default=1000)
 
 
 def wrap_unavailable(obj, method):
@@ -119,7 +120,7 @@ def run(parsed_args):
         ["Range estimate", range_text],
         ['Plug state', plug_state.name],
         ['Charging state', charge_state.name],
-        ['Charge rate', "{:.2f}kW".format(status['chargingInstantaneousPower'] / 1000)] if 'chargingInstantaneousPower' in status else None,
+        ['Charge rate', "{:.2f}kW".format(status['chargingInstantaneousPower'] / parsed_args.kw)] if 'chargingInstantaneousPower' in status else None,
         ['Time remaining', format_duration_minutes(status['chargingRemainingTime'])[:-3]] if 'chargingRemainingTime' in status else None,
         ['Charge mode', charge_mode.value if hasattr(charge_mode, 'value') else charge_mode],
         ['AC state', hvac['hvacStatus']] if 'hvacStatus' in hvac else None,
