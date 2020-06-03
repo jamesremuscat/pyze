@@ -1,10 +1,13 @@
 from .credentials import requires_credentials, CredentialStore
 from functools import lru_cache
+from async_lru import alru_cache
+from asgiref.sync import async_to_sync
 
 import jwt
 import logging
 import os
-import requests
+import asyncio
+import aiohttp
 
 
 DEFAULT_ROOT_URL = 'https://accounts.eu1.gigya.com'
@@ -17,9 +20,10 @@ class Gigya(object):
         api_key=None,
         credentials=None,
         root_url=DEFAULT_ROOT_URL,
+        websession=None,
     ):
         self._credentials = credentials or CredentialStore()
-        self._session = requests.Session()
+        self._websession = websession
         self._root_url = root_url
         if api_key:
             self.set_api_key(api_key)
@@ -28,10 +32,15 @@ class Gigya(object):
         self._credentials.store('gigya-api-key', api_key, None)
 
     def login(self, user, password):
+        return async_to_sync(self.login_async)(user, password)
+
+    async def login_async(self, user, password, session=None):
         if 'gigya-api-key' not in self._credentials:
             raise RuntimeError('Gigya API key not specified. Call set_api_key or set GIGYA_API_KEY environment variable.')
 
-        response = self._session.post(
+        response_body = await self.http_request(
+            None,
+            'POST',
             self._root_url + '/accounts.login',
             data={
                 'ApiKey': self._credentials['gigya-api-key'],
@@ -39,13 +48,6 @@ class Gigya(object):
                 'password': password
             }
         )
-
-        response.raise_for_status()
-
-        response_body = response.json()
-        _log.debug('Received Gigya login response: {}'.format(response_body))
-        raise_gigya_errors(response_body)
-
         token = response_body.get('sessionInfo', {}).get('cookieValue')
 
         if token:
@@ -64,18 +66,19 @@ class Gigya(object):
     @lru_cache(maxsize=1)
     @requires_credentials('gigya')
     def account_info(self):
-        response = self._session.post(
+        return async_to_sync(self.account_info_async)()
+
+    @alru_cache(maxsize=1)
+    @requires_credentials('gigya')
+    async def account_info_async(self):
+        response_body = await self.http_request(
+            None,
+            'POST',
             self._root_url + '/accounts.getAccountInfo',
-            {
+            data={
                 'oauth_token': self._credentials['gigya']
             }
         )
-
-        response.raise_for_status()
-        response_body = response.json()
-        _log.debug('Received Gigya accountInfo response: {}'.format(response_body))
-        raise_gigya_errors(response_body)
-
         person_id = response_body.get('data', {}).get('personId')
 
         if person_id:
@@ -90,24 +93,23 @@ class Gigya(object):
 
     @requires_credentials('gigya')
     def get_jwt_token(self):
+        return async_to_sync(self.get_jwt_token_async)()
 
+    @requires_credentials('gigya')
+    async def get_jwt_token_async(self):
         if 'gigya-token' in self._credentials:
             return self._credentials['gigya-token']
 
-        response = self._session.post(
+        response_body = await self.http_request(
+            None,
+            'POST',
             self._root_url + '/accounts.getJWT',
-            {
+            data={
                 'oauth_token': self._credentials['gigya'],
                 'fields': 'data.personId,data.gigyaDataCenter',
                 'expiration': 900
             }
         )
-
-        response.raise_for_status()
-        response_body = response.json()
-        _log.debug('Received Gigya getJWT response: {}'.format(response_body))
-        raise_gigya_errors(response_body)
-
         token = response_body.get('id_token')
 
         if token:
@@ -116,6 +118,27 @@ class Gigya(object):
             return token
 
         raise RuntimeError('Unable to find Gigya JWT token in response: {}'.format(response.text))
+
+    async def http_request(self, session, method, url, **kwargs):
+        if session is None:
+            session = self._websession
+        if session is None:
+            async with aiohttp.ClientSession() as websession:
+                return await self.http_request(websession, method, url, **kwargs)
+
+        _log.debug('Sending Gigya request to {} with data: {}'.format(url, kwargs.get('data', None)))
+        async with await session.request(
+            method,
+            url,
+            **kwargs
+        ) as response:
+
+            _log.debug('Received Gigya response: {}'.format(await response.text()))
+            _log.debug('Received Gigya headers: {}'.format(response.headers))
+            response.raise_for_status()
+            response_body = await response.json(content_type='text/javascript')
+            raise_gigya_errors(response_body)
+            return response_body
 
 
 def raise_gigya_errors(response_body):
