@@ -4,6 +4,8 @@ from .schedule import ChargeSchedules, ChargeMode
 from collections import namedtuple
 from enum import Enum
 from functools import lru_cache
+from async_lru import alru_cache
+from asgiref.sync import async_to_sync
 
 import datetime
 import dateutil.tz
@@ -11,7 +13,8 @@ import itertools
 import jwt
 import logging
 import os
-import requests
+import asyncio
+import aiohttp
 import simplejson
 
 
@@ -38,14 +41,15 @@ class Kamereon(CachingAPIObject):
         credentials=None,
         gigya=None,
         country='GB',
-        root_url=DEFAULT_ROOT_URL
+        root_url=DEFAULT_ROOT_URL,
+        websession=None,
     ):
 
         self._root_url = root_url
         self._credentials = credentials or CredentialStore()
         self._country = country
-        self._gigya = gigya or Gigya(credentials=self._credentials)
-        self._session = requests.Session()
+        self._gigya = gigya or Gigya(credentials=self._credentials, websession=websession)
+        self._websession = websession
         if api_key:
             self.set_api_key(api_key)
 
@@ -65,12 +69,15 @@ class Kamereon(CachingAPIObject):
         self._credentials.store('kamereon-api-key', api_key, None)
 
     def get_account_id(self):
+        return async_to_sync(self.get_account_id)()
+
+    async def get_account_id_async(self):
         if 'KAMEREON_ACCOUNT_ID' in os.environ:
             self.set_account_id(os.environ['KAMEREON_ACCOUNT_ID'])
         if 'kamereon-account' in self._credentials:
             return self._credentials['kamereon-account']
 
-        accounts = self.get_accounts()
+        accounts = await self.get_accounts_async()
 
         if len(accounts) == 0:
             raise AccountException('No Kamereon accounts found!')
@@ -84,7 +91,13 @@ class Kamereon(CachingAPIObject):
 
     @requires_credentials('gigya', 'gigya-person-id', 'kamereon-api-key')
     def get_accounts(self):
-        response = self._session.get(
+        return async_to_sync(self.get_accounts_async)()
+
+    @requires_credentials('gigya', 'gigya-person-id', 'kamereon-api-key')
+    async def get_accounts_async(self):
+        response_body = await self.http_request(
+            None,
+            'GET',
             '{}/commerce/v1/persons/{}?country={}'.format(
                 self._root_url,
                 self._credentials['gigya-person-id'],
@@ -92,14 +105,9 @@ class Kamereon(CachingAPIObject):
             ),
             headers={
                 'apikey': self._credentials['kamereon-api-key'],
-                'x-gigya-id_token': self._gigya.get_jwt_token()
+                'x-gigya-id_token': await self._gigya.get_jwt_token_async()
             }
         )
-
-        response.raise_for_status()
-        response_body = response.json()
-        _log.debug('Received Kamereon accounts response: {}'.format(response_body))
-
         return response_body.get('accounts', [])
 
     def set_account_id(self, account_id):
@@ -107,24 +115,26 @@ class Kamereon(CachingAPIObject):
 
     @requires_credentials('gigya', 'gigya-person-id', 'kamereon-api-key')
     def get_token(self):
+        return async_to_sync(self.get_token_async)()
+
+    @requires_credentials('gigya', 'gigya-person-id', 'kamereon-api-key')
+    async def get_token_async(self):
         if 'kamereon' in self._credentials:
             return self._credentials['kamereon']
 
-        response = self._session.get(
+        response_body = await self.http_request(
+            None,
+            'GET',
             '{}/commerce/v1/accounts/{}/kamereon/token?country={}'.format(
                 self._root_url,
-                self.get_account_id(),
+                await self.get_account_id_async(),
                 self._country
             ),
             headers={
                 'apikey': self._credentials['kamereon-api-key'],
-                'x-gigya-id_token': self._gigya.get_jwt_token()
+                'x-gigya-id_token': await self._gigya.get_jwt_token_async()
             }
         )
-
-        response.raise_for_status()
-        response_body = response.json()
-        _log.debug('Received Kamereon token response: {}'.format(response_body))
 
         token = response_body.get('accessToken')
         if token:
@@ -148,25 +158,46 @@ class Kamereon(CachingAPIObject):
 
     @lru_cache(maxsize=1)
     @requires_credentials('kamereon-api-key')
-    def get_vehicles(self):
-        response = self._session.get(
+    async def get_vehicles(self):
+        return async_to_sync(self.get_vehicles)()
+
+    @alru_cache(maxsize=1)
+    @requires_credentials('kamereon-api-key')
+    async def get_vehicles_async(self):
+        response_body = await self.http_request(
+            None,
+            'GET',
             '{}/commerce/v1/accounts/{}/vehicles?country={}'.format(
                 self._root_url,
-                self.get_account_id(),
+                await self.get_account_id_async(),
                 self._country
             ),
             headers={
                 'apikey': self._credentials['kamereon-api-key'],
-                'x-gigya-id_token': self._gigya.get_jwt_token(),
-                'x-kamereon-authorization': 'Bearer {}'.format(self.get_token())
+                'x-gigya-id_token': await self._gigya.get_jwt_token_async(),
+                'x-kamereon-authorization': 'Bearer {}'.format(await self.get_token_async())
             }
         )
-
-        response.raise_for_status()
-        response_body = response.json()
-        _log.debug('Received Kamereon vehicles response: {}'.format(response_body))
-
         return response_body
+
+    async def http_request(self, session, method, url, **kwargs):
+        if session is None:
+            session = self._websession
+        if session is None:
+            async with aiohttp.ClientSession() as websession:
+                return await self.http_request(websession, method, url, **kwargs)
+
+        _log.debug('Sending Kamereon request to {} with data: {}'.format(url, kwargs.get('data', None)))
+        async with await session.request(
+            method,
+            url,
+            **kwargs
+        ) as response:
+
+            _log.debug('Received Kamereon response: {}'.format(await response.text()))
+            _log.debug('Received Kamereon headers: {}'.format(response.headers))
+            response.raise_for_status()
+            return await response.json()
 
 
 class Vehicle(object):
@@ -176,15 +207,16 @@ class Vehicle(object):
         self._root_url = self._kamereon._root_url
 
     @requires_credentials('kamereon-api-key')
-    def _request(self, method, endpoint, **kwargs):
-        return self._kamereon._session.request(
+    async def http_request(self, method, url, **kwargs):
+        return await self._kamereon.http_request(
+            None,
             method,
-            endpoint,
+            url,
             headers={
                 'Content-type': 'application/vnd.api+json',
                 'apikey': self._kamereon._credentials['kamereon-api-key'],
-                'x-gigya-id_token': self._kamereon._gigya.get_jwt_token(),
-                'x-kamereon-authorization': 'Bearer {}'.format(self._kamereon.get_token())
+                'x-gigya-id_token': await self._kamereon._gigya.get_jwt_token_async(),
+                'x-kamereon-authorization': 'Bearer {}'.format(await self._kamereon.get_token_async())
             },
             params={
                 'country': self._kamereon._country
@@ -192,31 +224,25 @@ class Vehicle(object):
             **kwargs
         )
 
-    def _get(self, endpoint, version=1):
-        response = self._request(
+    async def _get(self, endpoint, version=1):
+        json = await self.http_request(
             'GET',
             '{}/commerce/v1/accounts/{}/kamereon/kca/car-adapter/v{}/cars/{}/{}'.format(
                 self._root_url,
-                self._kamereon.get_account_id(),
+                await self._kamereon.get_account_id_async(),
                 version,
                 self._vin,
                 endpoint
             )
         )
-
-        _log.debug('Received Kamereon vehicle response: {}'.format(response.text))
-        _log.debug('Response headers: {}'.format(response.headers))
-        response.raise_for_status()
-        json = response.json()
         return json['data']['attributes']
 
-    def _post(self, endpoint, data, version=1):
-        _log.debug('POSTing with data: {}'.format(data))
-        response = self._request(
+    async def _post(self, endpoint, data, version=1):
+        json = await self.http_request(
             'POST',
             '{}/commerce/v1/accounts/{}/kamereon/kca/car-adapter/v{}/cars/{}/{}'.format(
                 self._root_url,
-                self._kamereon.get_account_id(),
+                await self._kamereon.get_account_id_async(),
                 version,
                 self._vin,
                 endpoint
@@ -225,55 +251,74 @@ class Vehicle(object):
                 'data': data
             }
         )
-
-        _log.debug('Received Kamereon vehicle response: {}'.format(response.text))
-        _log.debug('Response headers: {}'.format(response.headers))
-        response.raise_for_status()
-        json = response.json()
         return json
 
     def battery_status(self):
-        return self._get('battery-status', 2)
+        return async_to_sync(self.battery_status_async)()
 
-    def location(self):
-        return self._get('location')
+    async def battery_status_async(self):
+        return await self._get('battery-status', 2)
 
     def hvac_status(self):
-        return self._get('hvac-status')
+        return async_to_sync(self.hvac_status_async)()
+
+    async def hvac_status_async(self):
+        return await self._get('hvac-status')
 
     def charge_mode(self):
-        raw_mode = self._get('charge-mode')['chargeMode']
+        return async_to_sync(self.charge_mode_async)()
+
+    async def charge_mode_async(self):
+        raw_mode = (await self._get('charge-mode'))['chargeMode']
         if hasattr(ChargeMode, raw_mode):
             return getattr(ChargeMode, raw_mode)
         else:
             return raw_mode
 
     def mileage(self):
-        return self._get('cockpit', 2)
+        return async_to_sync(self.mileage_async)()
+
+    async def mileage_async(self):
+        return await self._get('cockpit', 2)
 
     # Not (currently) implemented server-side
     def lock_status(self):
-        return self._get('lock-status')
+        return async_to_sync(self.lock_status_async)()
+
+    async def lock_status_async(self):
+        return await self._get('lock-status')
 
     # Not implemented server-side for most vehicles
     def location(self):
-        return self._get('location')
+        return async_to_sync(self.location_async)()
+
+    async def location_async(self):
+        return await self._get('location')
 
     def charge_schedules(self):
+        return async_to_sync(self.charge_schedules_async)()
+
+    async def charge_schedules_async(self):
         return ChargeSchedules(
-            self._get('charging-settings')
+            await self._get('charging-settings')
         )
 
     def notification_settings(self):
-        return self._get('notification-settings')
+        return async_to_sync(self.notification_settings_async)()
+
+    async def notification_settings_async(self):
+        return await self._get('notification-settings')
 
     def charge_history(self, start, end):
+        return async_to_sync(self.charge_history_async)(start, end)
+
+    async def charge_history_async(self, start, end):
         if not isinstance(start, datetime.datetime):
             raise RuntimeError('`start` should be an instance of datetime.datetime, not {}'.format(start.__class__))
         if not isinstance(end, datetime.datetime):
             raise RuntimeError('`end` should be an instance of datetime.datetime, not {}'.format(end.__class__))
 
-        return self._get(
+        return await self._get(
             'charges?start={}&end={}'.format(
                 start.strftime('%Y%m%d'),
                 end.strftime('%Y%m%d')
@@ -281,6 +326,9 @@ class Vehicle(object):
         ).get('charges', [])
 
     def charge_statistics(self, start, end, period='month'):
+        return async_to_sync(self.charge_statistics_async)(start, end, period)
+
+    async def charge_statistics_async(self, start, end, period='month'):
         if not isinstance(start, datetime.datetime):
             raise RuntimeError('`start` should be an instance of datetime.datetime, not {}'.format(start.__class__))
         if not isinstance(end, datetime.datetime):
@@ -288,7 +336,7 @@ class Vehicle(object):
         if period not in PERIOD_FORMATS.keys():
             raise RuntimeError('`period` should be one of `month`, `day`')
 
-        return self._get(
+        return await self._get(
             'charge-history?type={}&start={}&end={}'.format(
                 period,
                 start.strftime(PERIOD_FORMATS[period]),
@@ -297,12 +345,15 @@ class Vehicle(object):
         )['chargeSummaries']
 
     def hvac_history(self, start, end):
+        return async_to_sync(self.hvac_history_async)(start, end)
+
+    async def hvac_history_async(self, start, end):
         if not isinstance(start, datetime.datetime):
             raise RuntimeError('`start` should be an instance of datetime.datetime, not {}'.format(start.__class__))
         if not isinstance(end, datetime.datetime):
             raise RuntimeError('`end` should be an instance of datetime.datetime, not {}'.format(end.__class__))
 
-        return self._get(
+        return await self._get(
             'hvac-sessions?start={}&end={}'.format(
                 start.strftime('%Y%m%d'),
                 end.strftime('%Y%m%d')
@@ -310,6 +361,9 @@ class Vehicle(object):
         ).get('hvacSessions', [])
 
     def hvac_statistics(self, start, end, period='month'):
+        return async_to_sync(self.hvac_statistics_async)(start, end, period)
+
+    async def hvac_statistics_async(self, start, end, period='month'):
         if not isinstance(start, datetime.datetime):
             raise RuntimeError('`start` should be an instance of datetime.datetime, not {}'.format(start.__class__))
         if not isinstance(end, datetime.datetime):
@@ -317,7 +371,7 @@ class Vehicle(object):
         if period not in PERIOD_FORMATS.keys():
             raise RuntimeError('`period` should be one of `month`, `day`')
 
-        return self._get(
+        return await self._get(
             'hvac-history?type={}&start={}&end={}'.format(
                 period,
                 start.strftime(PERIOD_FORMATS[period]),
@@ -328,6 +382,9 @@ class Vehicle(object):
     # Actions
 
     def ac_start(self, when=None, temperature=21):
+        return async_to_sync(self.ac_start_async)(when, temperature)
+
+    async def ac_start_async(self, when=None, temperature=21):
 
         attrs = {
             'action': 'start',
@@ -345,7 +402,7 @@ class Vehicle(object):
                 "%Y-%m-%dT%H:%M:%SZ"
             )
 
-        return self._post(
+        return await self._post(
             'actions/hvac-start',
             {
                 'type': 'HvacStart',
@@ -354,7 +411,10 @@ class Vehicle(object):
         )
 
     def cancel_ac(self):
-        return self._post(
+        return async_to_sync(self.cancel_ac_async)()
+
+    async def cancel_ac_async(self):
+        return await self._post(
             'actions/hvac-start',
             {
                 'type': 'HvacStart',
@@ -365,6 +425,9 @@ class Vehicle(object):
         )
 
     def set_charge_schedules(self, schedules):
+        return async_to_sync(self.set_charge_schedules_async)(schedules)
+
+    async def set_charge_schedules_async(self, schedules):
         if not isinstance(schedules, ChargeSchedules):
             raise RuntimeError('Expected schedule to be instance of ChargeSchedules, but got {} instead'.format(schedule.__class__))
         schedules.validate()
@@ -374,13 +437,16 @@ class Vehicle(object):
             'attributes': schedules
         }
 
-        return self._post(
+        return await self._post(
             'actions/charge-schedule',
             simplejson.loads(simplejson.dumps(data, for_json=True)),
             version=2
         )
 
     def set_charge_mode(self, charge_mode):
+        return async_to_sync(self.set_charge_mode_async)(charge_mode)
+
+    async def set_charge_mode_async(self, charge_mode):
         if not isinstance(charge_mode, ChargeMode):
             raise RuntimeError('Expected charge_mode to be instance of ChargeMode, but got {} instead'.format(charge_mode.__class__))
 
@@ -391,13 +457,16 @@ class Vehicle(object):
             }
         }
 
-        return self._post(
+        return await self._post(
             'actions/charge-mode',
             data
         )
 
     def charge_start(self):
-        return self._post(
+        return async_to_sync(self.charge_start_async)()
+
+    async def charge_start_async(self):
+        return await self._post(
             'actions/charging-start',
             {
                 'type': 'ChargingStart',
