@@ -3,6 +3,7 @@ from collections import namedtuple
 import os
 import simplejson
 import time
+import asyncio
 
 
 TOKEN_STORE = os.environ.get('PYZE_TOKEN_STORE', os.path.expanduser('~/.credentials/pyze.json'))
@@ -19,13 +20,22 @@ class MissingCredentialException(Exception):
 
 def requires_credentials(*names):
     def _requires_credentials(func):
-        def inner(*args, **kwargs):
-            for name in names:
-                if name not in CredentialStore():
-                    raise MissingCredentialException(name)
-            return func(*args, **kwargs)
+        if asyncio.iscoroutinefunction(func):
+            async def inner(*args, **kwargs):
+                for name in names:
+                    if name not in CredentialStore():
+                        raise MissingCredentialException(name)
+                return await func(*args, **kwargs)
 
-        return inner
+            return inner
+        else:
+            def inner(*args, **kwargs):
+                for name in names:
+                    if name not in CredentialStore():
+                        raise MissingCredentialException(name)
+                return func(*args, **kwargs)
+
+            return inner
     return _requires_credentials
 
 
