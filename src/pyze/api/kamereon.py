@@ -105,47 +105,6 @@ class Kamereon(CachingAPIObject):
     def set_account_id(self, account_id):
         self._credentials['kamereon-account'] = (account_id, None)
 
-    @requires_credentials('gigya', 'gigya-person-id', 'kamereon-api-key')
-    def get_token(self):
-        if 'kamereon' in self._credentials:
-            return self._credentials['kamereon']
-
-        response = self._session.get(
-            '{}/commerce/v1/accounts/{}/kamereon/token?country={}'.format(
-                self._root_url,
-                self.get_account_id(),
-                self._country
-            ),
-            headers={
-                'apikey': self._credentials['kamereon-api-key'],
-                'x-gigya-id_token': self._gigya.get_jwt_token()
-            }
-        )
-
-        response.raise_for_status()
-        response_body = response.json()
-        _log.debug('Received Kamereon token response: {}'.format(response_body))
-
-        token = response_body.get('accessToken')
-        if token:
-            decoded = jwt.decode(
-                token,
-                options={
-                    'verify_signature': False,
-                    'verify_aud': False,
-                    'verify_nbf': False
-                }
-            )
-            self._credentials['kamereon'] = (token, decoded['exp'])
-            self._clear_all_caches()
-            return token
-        else:
-            raise AccountException(
-                'Unable to obtain a Kamereon access token! Response included keys {}'.format(
-                    ', '.join(response_body.keys())
-                )
-            )
-
     @lru_cache(maxsize=1)
     @requires_credentials('kamereon-api-key')
     def get_vehicles(self):
@@ -158,7 +117,6 @@ class Kamereon(CachingAPIObject):
             headers={
                 'apikey': self._credentials['kamereon-api-key'],
                 'x-gigya-id_token': self._gigya.get_jwt_token(),
-                'x-kamereon-authorization': 'Bearer {}'.format(self.get_token())
             }
         )
 
@@ -184,7 +142,6 @@ class Vehicle(object):
                 'Content-type': 'application/vnd.api+json',
                 'apikey': self._kamereon._credentials['kamereon-api-key'],
                 'x-gigya-id_token': self._kamereon._gigya.get_jwt_token(),
-                'x-kamereon-authorization': 'Bearer {}'.format(self._kamereon.get_token())
             },
             params={
                 'country': self._kamereon._country
