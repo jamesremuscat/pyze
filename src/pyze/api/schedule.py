@@ -31,6 +31,7 @@ MINUTES_IN_DAY = 60 * 24
 
 
 class ChargeMode(Enum):
+    always = 'Always'
     always_charging = 'Always charge'
     schedule_mode = 'Scheduled charge'
 
