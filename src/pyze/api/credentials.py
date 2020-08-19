@@ -20,8 +20,13 @@ class MissingCredentialException(Exception):
 def requires_credentials(*names):
     def _requires_credentials(func):
         def inner(*args, **kwargs):
+            credentials = None
+            if args[0] and hasattr(args[0], '_credentials'):
+                credentials = args[0]._credentials
+            elif args[0] and hasattr(args[0], '_kamereon'):
+                credentials = args[0]._kamereon._credentials
             for name in names:
-                if name not in CredentialStore():
+                if name not in credentials:
                     raise MissingCredentialException(name)
             return func(*args, **kwargs)
 
