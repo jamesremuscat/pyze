@@ -64,6 +64,9 @@ class Gigya(object):
     @lru_cache(maxsize=1)
     @requires_credentials('gigya')
     def account_info(self):
+        if 'gigya-api-key' not in self._credentials:
+            raise RuntimeError('Gigya API key not specified. Call set_api_key or set GIGYA_API_KEY environment variable.')
+
         response = self._session.post(
             self._root_url + '/accounts.getAccountInfo',
             {
@@ -94,6 +97,9 @@ class Gigya(object):
 
         if 'gigya-token' in self._credentials:
             return self._credentials['gigya-token']
+
+        if 'gigya-api-key' not in self._credentials:
+            raise RuntimeError('Gigya API key not specified. Call set_api_key or set GIGYA_API_KEY environment variable.')
 
         response = self._session.post(
             self._root_url + '/accounts.getJWT',
