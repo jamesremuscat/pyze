@@ -67,7 +67,8 @@ class Gigya(object):
         response = self._session.post(
             self._root_url + '/accounts.getAccountInfo',
             {
-                'oauth_token': self._credentials['gigya']
+                'ApiKey': self._credentials['gigya-api-key'],
+                'login_token': self._credentials['gigya']
             }
         )
 
@@ -97,7 +98,8 @@ class Gigya(object):
         response = self._session.post(
             self._root_url + '/accounts.getJWT',
             {
-                'oauth_token': self._credentials['gigya'],
+                'ApiKey': self._credentials['gigya-api-key'],
+                'login_token': self._credentials['gigya'],
                 'fields': 'data.personId,data.gigyaDataCenter',
                 'expiration': 900
             }
