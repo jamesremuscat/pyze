@@ -46,15 +46,20 @@ pyze status
 ## API Quickstart
 
 ```python
-from pyze.api import Gigya, Kamereon, Vehicle
+from pyze.api import Gigya, Kamereon, Vehicle, BasicCredentialStore, FileCredentialStore
 
-g = Gigya()
-g.login('email', 'password')  # You should only need to do this once
+#Choose one of the following credential store
+c = BasicCredentialStore() #Credentials will only be stored in memory
+# c = FileCredentialStore(os.path.expanduser('~/.folder/file.ext')) #Credentials will be stored in specified file
+# c = CredentialStore() #singleton of FileCredentialStore(os.path.expanduser('~/.credentials/pyze.json'))
+
+g = Gigya(credentials=c)
+g.login('email', 'password')  # You should only need to do this once if you are storing credentials to file
 g.account_info()  # Retrieves and caches person ID
 
-k = Kamereon(gigya=g)  # Gigya argument is optional - if not supplied it will create one
+k = Kamereon(credentials=c, gigya=g)  # Gigya argument is optional - if not supplied it will create one
 
-v = Vehicle('YOUR_VIN', k)  # Kamereon argument is likewise optional
+v = Vehicle('YOUR_VIN', k) # Kamereon argument is likewise optional
 
 v.battery_status()
 ```
