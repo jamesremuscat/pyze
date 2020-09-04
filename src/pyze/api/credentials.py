@@ -1,22 +1,14 @@
 from collections import namedtuple
 
-import logging
 import os
-import requests
 import simplejson
 import time
 
 
-DEFAULT_ROOT_URL = 'https://renault-wrd-prod-1-euw1-myrapp-one.s3-eu-west-1.amazonaws.com/configuration/android/config_en_GB.json'
-
 PERMANENT_KEYS = [
     'gigya-api-key',
-    'gigya-api-url',
-    'kamereon-api-key',
-    'kamereon-api-url',
+    'kamereon-api-key'
 ]
-
-_log = logging.getLogger('pyze.api.credentials')
 
 
 class MissingCredentialException(Exception):
@@ -94,19 +86,6 @@ class BasicCredentialStore(object):
 
         if 'KAMEREON_API_KEY' in os.environ:
             self.store('kamereon-api-key', os.environ['KAMEREON_API_KEY'], None)
-
-    def get_api_keys_from_myrenault(self, url=DEFAULT_ROOT_URL):
-        response = requests.get(DEFAULT_ROOT_URL)
-        response.raise_for_status()
-        response_body = response.json()
-
-        _log.debug('Received api keys from myrenaul response: {}'.format(response_body))
-
-        servers = response_body['servers']
-        self.store('gigya-api-key', servers['gigyaProd']['apikey'], None)
-        self.store('gigya-api-url', servers['gigyaProd']['target'], None)
-        self.store('kamereon-api-key', servers['wiredProd']['apikey'], None)
-        self.store('kamereon-api-url', servers['wiredProd']['target'], None)
 
     def requires(self, *names):
         for name in names:
