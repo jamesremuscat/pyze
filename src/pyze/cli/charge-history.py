@@ -38,10 +38,9 @@ def run(parsed_args):
                 'Charge start',
                 'Charge end',
                 'Duration',
-                'Power (kW)',
                 'Started at (%)',
                 'Charge gained (%)',
-                'Power level',
+                'Power level (kW)',
                 'Status'
             ]
         )
@@ -73,13 +72,6 @@ def _format_charge_history(ch):
     else:
         chargeDuration = ''
 
-    # chargeStartInstantaneousPower seems to be missing for some charging sessions
-
-    if 'chargeStartInstantaneousPower' in ch:
-        chargeStartInstantaneousPower = '{:.2f}'.format(ch['chargeStartInstantaneousPower'] / 1000)
-    else:
-        chargeStartInstantaneousPower = ''
-
     if 'chargeBatteryLevelRecovered' in ch:
         chargeBatteryLevelRecovered = ch['chargeBatteryLevelRecovered']
     else:
@@ -89,7 +81,6 @@ def _format_charge_history(ch):
         start_date,
         end_date,
         chargeDuration,
-        chargeStartInstantaneousPower,
         ch.get('chargeStartBatteryLevel'),
         ch.get('chargeEndBatteryLevel'),
         ch.get('chargeEndInstantaneousPower'),
