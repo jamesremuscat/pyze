@@ -28,7 +28,7 @@ class CachingAPIObject(object):
     def _clear_all_caches(self):
         cached_funcs = [f for f in dir(self) if hasattr(f, 'cache_clear')]
         for func in cached_funcs:
-            f.cache_clear()
+            func.cache_clear()
 
 
 class Kamereon(CachingAPIObject):
@@ -323,7 +323,7 @@ class Vehicle(object):
 
     def set_charge_schedules(self, schedules):
         if not isinstance(schedules, ChargeSchedules):
-            raise RuntimeError('Expected schedule to be instance of ChargeSchedules, but got {} instead'.format(schedule.__class__))
+            raise RuntimeError('Expected schedule to be instance of ChargeSchedules, but got {} instead'.format(schedules.__class__))
         schedules.validate()
 
         data = {
