@@ -212,9 +212,6 @@ class Vehicle(object):
         return self._get('lock-status')
 
     # Not implemented server-side for most vehicles
-    def location(self):
-        return self._get('location')
-
     def charge_schedules(self):
         return ChargeSchedules(
             self._get('charging-settings')
